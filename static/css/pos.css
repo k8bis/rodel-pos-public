@@ -1,0 +1,1585 @@
+/* =========================================================
+   RodelSoft POS - INV-3B FINAL REV4
+   ========================================================= */
+
+.pos-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.pos-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+  padding: 20px;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  flex: 1;
+}
+
+.catalog-panel,
+.cart-panel {
+  background: #ffffff;
+  border: 1px solid var(--rs-border);
+  border-radius: 16px;
+  box-shadow: var(--rs-shadow-md);
+  padding: 18px;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--rs-primary);
+  margin-bottom: 16px;
+}
+
+.toolbar,
+.catalog-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.action-btn,
+.secondary-btn,
+.checkout-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.action-btn,
+.checkout-btn {
+  background: var(--rs-primary);
+  color: #fff;
+}
+
+.action-btn:hover,
+.checkout-btn:hover {
+  background: var(--rs-primary-hover);
+}
+
+.secondary-btn {
+  background: #ffffff;
+  color: var(--rs-primary);
+  border: 1px solid var(--rs-border);
+}
+
+.secondary-btn:hover {
+  background: #eef4ff;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 220px;
+  border: 1px solid var(--rs-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--rs-accent);
+}
+
+.categories-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.category-btn {
+  border: 1px solid var(--rs-border);
+  background: #fff;
+  color: var(--rs-primary);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.category-btn:hover,
+.category-btn.active {
+  background: #eef4ff;
+  border-color: #bfd5ff;
+}
+
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.product-card {
+  position: relative;
+  border: 1px solid #dbe7ff;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.product-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--rs-primary), #3b82f6);
+}
+
+.product-card-clickable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.10);
+  border-color: #bfd5ff;
+}
+
+.product-card-disabled {
+  opacity: 0.82;
+  cursor: not-allowed;
+}
+
+.product-card-out-of-stock {
+  border-color: #fecaca;
+  background: linear-gradient(180deg, #ffffff 0%, #fff7f7 100%);
+}
+
+.product-card-out-of-stock::before {
+  background: linear-gradient(90deg, #dc2626, #f87171);
+}
+
+.product-card-service::before {
+  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+
+.product-overlay-ribbon {
+  position: absolute;
+  top: 25px;
+  right: -34px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  padding: 6px 40px;
+  transform: rotate(35deg);
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.28);
+  z-index: 2;
+}
+
+.product-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.product-card-head {
+  min-width: 0;
+  flex: 1;
+}
+
+.product-name {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--rs-primary);
+  margin-bottom: 4px;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.product-subtitle {
+  font-size: 12px;
+  color: var(--rs-text-muted);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.product-subtitle-empty {
+  opacity: 0.75;
+}
+
+.product-card-status {
+  flex-shrink: 0;
+}
+
+.product-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.product-status-chip-ok {
+  background: #ecfdf5;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.product-status-chip-danger {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.product-status-chip-service {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+
+.product-price-block {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e6eefc;
+}
+
+.product-price-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 800;
+  color: var(--rs-text-muted);
+  margin-bottom: 4px;
+}
+
+.product-price {
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: #059669;
+  line-height: 1;
+}
+
+.product-card-footer {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px dashed #dbe7ff;
+}
+
+.product-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.product-footer-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rs-text-muted);
+}
+
+.product-footer-value {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--rs-primary);
+  text-align: right;
+}
+
+.product-footer-value-danger {
+  color: #b91c1c;
+}
+
+.product-badges,
+.product-badge,
+.product-meta-line,
+.product-stock {
+  display: none !important;
+}
+
+
+.loading-box,
+.error-box,
+.empty-cart {
+  border: 1px dashed var(--rs-border);
+  border-radius: 12px;
+  padding: 18px;
+  text-align: center;
+  color: var(--rs-text-muted);
+  background: #fafcff;
+}
+
+.error-box {
+  border-color: #fecaca;
+  color: #991b1b;
+  background: #fff5f5;
+}
+
+.cart-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 180px;
+  margin-bottom: 16px;
+}
+
+.cart-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--rs-border);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.cart-item-meta {
+  color: var(--rs-text-muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.quantity-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quantity-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--rs-border);
+  background: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.quantity-btn:hover {
+  background: #eef4ff;
+}
+
+.cart-total {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--rs-primary);
+  margin-bottom: 14px;
+}
+
+.checkout-btn {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.pos-side-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* =========================
+   Modals
+   ========================= */
+.rs-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 200;
+}
+
+.rs-modal-backdrop.show {
+  display: flex;
+}
+
+.rs-modal-sublevel {
+  z-index: 230;
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.rs-modal-card {
+  width: 100%;
+  max-width: 640px;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: var(--rs-shadow-lg);
+  border: 1px solid var(--rs-border);
+  overflow: hidden;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+
+.rs-modal-card-lg {
+  max-width: 920px;
+}
+
+.rs-modal-card-xl {
+  max-width: 1180px;
+}
+
+.rs-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--rs-border);
+  flex-shrink: 0;
+}
+
+.rs-modal-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--rs-primary);
+}
+
+.rs-modal-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--rs-text-muted);
+}
+
+.rs-modal-form {
+  padding: 18px;
+  overflow: auto;
+}
+
+.rs-form-grid {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.rs-form-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rs-form-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.rs-form-grid-4 {
+  grid-template-columns: minmax(0, 1.8fr) repeat(3, minmax(0, 1fr));
+}
+
+.rs-form-group label,
+.rs-checkbox-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rs-primary);
+}
+
+.rs-form-group input,
+.rs-form-group select,
+.rs-form-group textarea {
+  border: 1px solid var(--rs-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  outline: none;
+  width: 100%;
+}
+
+.rs-form-group input:focus,
+.rs-form-group select:focus,
+.rs-form-group textarea:focus {
+  border-color: var(--rs-accent);
+}
+
+.rs-checkbox-group {
+  justify-content: flex-end;
+}
+
+.rs-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+}
+
+.rs-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+/* =========================
+   Tablas mantenimiento
+   ========================= */
+.catalog-table-wrap {
+  margin-top: 18px;
+  border: 1px solid var(--rs-border);
+  border-radius: 14px;
+  overflow: auto;
+  background: #fff;
+}
+
+.catalog-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.catalog-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fbff;
+  color: var(--rs-primary);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--rs-border);
+  white-space: nowrap;
+}
+
+.catalog-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2f7;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.catalog-table tbody tr:hover {
+  background: #fafcff;
+}
+
+.catalog-empty-row {
+  text-align: center;
+  color: var(--rs-text-muted);
+  padding: 22px !important;
+}
+
+.catalog-empty-row-error {
+  color: #991b1b;
+  background: #fff5f5;
+}
+
+.table-mini-btn {
+  border: 1px solid var(--rs-border);
+  background: #fff;
+  color: var(--rs-primary);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.table-mini-btn:hover {
+  background: #eef4ff;
+}
+
+.table-color-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-color-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.1);
+  display: inline-block;
+}
+
+@media (max-width: 1100px) {
+  .pos-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .rs-form-grid-2,
+  .rs-form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .cart-item {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-table {
+    min-width: 640px;
+  }
+}
+
+/* =========================================================
+   POS - Product editor modal visual polish
+   Hallazgo: grupos del modal de producto sin estilo / amontonados
+   Agregar al final de pos.css
+   ========================================================= */
+
+#productEditorBackdrop .rs-modal-card {
+  max-width: 860px;
+}
+
+#productForm.rs-modal-form {
+  padding: 20px;
+}
+
+/* Secciones visuales del modal */
+#productForm .rs-form-section {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #dbe7ff;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+#productForm .rs-form-section:last-of-type {
+  margin-bottom: 0;
+}
+
+#productForm .rs-form-section-title {
+  margin: 0 0 14px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--rs-primary);
+  line-height: 1.2;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e8f0ff;
+}
+
+/* Mejor ritmo interno */
+#productForm .rs-form-grid {
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+#productForm .rs-form-grid:last-child {
+  margin-bottom: 0;
+}
+
+#productForm .rs-form-group {
+  gap: 7px;
+}
+
+#productForm .rs-form-group label,
+#productForm .rs-checkbox-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rs-primary);
+  line-height: 1.2;
+}
+
+/* Inputs del modal producto más homogéneos */
+#productForm .rs-form-group input,
+#productForm .rs-form-group select,
+#productForm .rs-form-group textarea {
+  min-height: 44px;
+  background: #ffffff;
+  border: 1px solid #d8e4fb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+#productForm .rs-form-group textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+#productForm .rs-form-group input:focus,
+#productForm .rs-form-group select:focus,
+#productForm .rs-form-group textarea:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  background: #ffffff;
+}
+
+/* Checkbox alineado y con mejor presentación */
+#productForm .rs-checkbox-group {
+  display: flex;
+  align-items: flex-end;
+  min-height: 100%;
+}
+
+#productForm .rs-checkbox-group-inline {
+  justify-content: flex-start;
+}
+
+#productForm .rs-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 2px;
+  margin: 0;
+  color: var(--rs-primary);
+}
+
+#productForm .rs-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--rs-primary);
+  flex-shrink: 0;
+}
+
+/* Inputs numéricos: mejor lectura */
+#productForm input[type="number"] {
+  text-align: left;
+}
+
+/* Footer del modal más limpio */
+#productForm .rs-modal-actions {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e8f0ff;
+}
+
+/* Si la sección local se oculta por JS */
+#productForm .is-hidden {
+  display: none !important;
+}
+
+/* Responsive */
+@media (max-width: 760px) {
+  #productEditorBackdrop .rs-modal-card {
+    max-width: 100%;
+  }
+
+  #productForm.rs-modal-form {
+    padding: 16px;
+  }
+
+  #productForm .rs-form-section {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  #productForm .rs-form-section-title {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+}
+
+/* =========================================================
+   POS - Configuración POS modal visual polish
+   Replica el estilo del modal de producto para #posConfigForm
+   ========================================================= */
+
+#posConfigBackdrop .rs-modal-card {
+  max-width: 860px;
+}
+
+#posConfigForm.rs-modal-form {
+  padding: 20px;
+}
+
+/* Tabs principales */
+#posConfigForm .rs-poscfg-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+#posConfigForm .rs-poscfg-tabs .rs-btn {
+  min-height: 42px;
+}
+
+/* Secciones visuales tipo modal producto */
+#posConfigForm .rs-form-section {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #dbe7ff;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+#posConfigForm .rs-form-section:last-of-type {
+  margin-bottom: 0;
+}
+
+#posConfigForm .rs-form-section-title {
+  margin: 0 0 14px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--rs-primary);
+  line-height: 1.2;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e8f0ff;
+}
+
+/* Ritmo interno */
+#posConfigForm .rs-form-grid {
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+#posConfigForm .rs-form-grid:last-child {
+  margin-bottom: 0;
+}
+
+#posConfigForm .rs-form-group {
+  gap: 7px;
+}
+
+#posConfigForm .rs-form-group label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rs-primary);
+  line-height: 1.2;
+}
+
+/* Inputs homogéneos */
+#posConfigForm .rs-form-group input,
+#posConfigForm .rs-form-group select,
+#posConfigForm .rs-form-group textarea {
+  min-height: 44px;
+  background: #ffffff;
+  border: 1px solid #d8e4fb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+#posConfigForm .rs-form-group textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+#posConfigForm .rs-form-group input:focus,
+#posConfigForm .rs-form-group select:focus,
+#posConfigForm .rs-form-group textarea:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  background: #ffffff;
+}
+
+/* Footer consistente */
+#posConfigForm .rs-modal-actions {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e8f0ff;
+}
+
+/* Hint */
+#posConfigForm #posCfgHint {
+  display: block;
+  margin-top: 6px;
+  color: var(--rs-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* Responsive */
+@media (max-width: 760px) {
+  #posConfigForm.rs-modal-form {
+    padding: 16px;
+  }
+
+  #posConfigForm .rs-form-section {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  #posConfigForm .rs-form-section-title {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+
+  #posConfigForm .rs-poscfg-tabs {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   POS - Price editor modal visual polish
+   Alineación checkbox + estilo consistente con modal producto
+   ========================================================= */
+
+#priceEditorBackdrop .rs-modal-card {
+  max-width: 860px;
+}
+
+#priceForm {
+  padding: 20px;
+}
+
+#priceForm .rs-form-section {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #dbe7ff;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+#priceForm .rs-form-section:last-of-type {
+  margin-bottom: 0;
+}
+
+#priceForm .rs-form-section-title {
+  margin: 0 0 14px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--rs-primary);
+  line-height: 1.2;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e8f0ff;
+}
+
+#priceForm .rs-form-grid {
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+#priceForm .rs-form-grid:last-child {
+  margin-bottom: 0;
+}
+
+#priceForm .rs-form-group {
+  gap: 7px;
+}
+
+#priceForm .rs-form-group label,
+#priceForm .rs-checkbox-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rs-primary);
+  line-height: 1.2;
+}
+
+#priceForm .rs-form-group input,
+#priceForm .rs-form-group select {
+  min-height: 44px;
+  background: #ffffff;
+  border: 1px solid #d8e4fb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+#priceForm .rs-form-group input:focus,
+#priceForm .rs-form-group select:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  background: #ffffff;
+}
+
+/* Checkbox alineado igual que producto */
+#priceForm .rs-checkbox-group {
+  display: flex;
+  align-items: center;
+  min-height: 100%;
+}
+
+#priceForm .rs-checkbox-group-inline {
+  justify-content: flex-start;
+}
+
+#priceForm .rs-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 2px;
+  margin: 0;
+  color: var(--rs-primary);
+}
+
+#priceForm .rs-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--rs-primary);
+  flex-shrink: 0;
+}
+
+#priceForm .rs-modal-actions {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e8f0ff;
+}
+
+@media (max-width: 760px) {
+  #priceEditorBackdrop .rs-modal-card {
+    max-width: 100%;
+  }
+
+  #priceForm {
+    padding: 16px;
+  }
+
+  #priceForm .rs-form-section {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  #priceForm .rs-form-section-title {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 78px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.status-active {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.status-inactive {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+/* =========================================================
+   POS - Customer editor modal visual polish
+   Mismo patrón visual que priceForm / productForm
+   ========================================================= */
+
+#customerEditorBackdrop .rs-modal-card {
+  max-width: 860px;
+}
+
+#customerEditorForm {
+  padding: 20px;
+}
+
+#customerEditorForm .rs-form-section {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #dbe7ff;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+#customerEditorForm .rs-form-section:last-of-type {
+  margin-bottom: 0;
+}
+
+#customerEditorForm .rs-form-section-title {
+  margin: 0 0 14px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--rs-primary);
+  line-height: 1.2;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e8f0ff;
+}
+
+#customerEditorForm .rs-form-grid {
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+#customerEditorForm .rs-form-grid:last-child {
+  margin-bottom: 0;
+}
+
+#customerEditorForm .rs-form-group {
+  gap: 7px;
+}
+
+#customerEditorForm .rs-form-group label,
+#customerEditorForm .rs-checkbox-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rs-primary);
+  line-height: 1.2;
+}
+
+#customerEditorForm .rs-form-group input,
+#customerEditorForm .rs-form-group select,
+#customerEditorForm .rs-form-group textarea {
+  min-height: 44px;
+  background: #ffffff;
+  border: 1px solid #d8e4fb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+#customerEditorForm .rs-form-group textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+#customerEditorForm .rs-form-group input:focus,
+#customerEditorForm .rs-form-group select:focus,
+#customerEditorForm .rs-form-group textarea:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+  background: #ffffff;
+}
+
+/* Checkbox alineado igual que priceForm */
+#customerEditorForm .rs-checkbox-group {
+  display: flex;
+  align-items: flex-end;
+  min-height: 100%;
+}
+
+#customerEditorForm .rs-checkbox-group-inline {
+  justify-content: flex-start;
+}
+
+#customerEditorForm .rs-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 2px;
+  margin: 0;
+  color: var(--rs-primary);
+}
+
+#customerEditorForm .rs-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--rs-primary);
+  flex-shrink: 0;
+}
+
+#customerEditorForm .rs-modal-actions {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e8f0ff;
+}
+
+@media (max-width: 760px) {
+  #customerEditorBackdrop .rs-modal-card {
+    max-width: 100%;
+  }
+
+  #customerEditorForm {
+    padding: 16px;
+  }
+
+  #customerEditorForm .rs-form-section {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  #customerEditorForm .rs-form-section-title {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+}
+
+/* =========================================================
+   POS - INV-5A
+   Panel documental en carrito (nota de venta)
+   Corrección de visibilidad / jerarquía visual
+   ========================================================= */
+
+.cart-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.pos-sales-note-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid #dbe7ff;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+}
+
+.pos-sales-note-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pos-sales-note-panel-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--rs-primary);
+  line-height: 1.2;
+}
+
+.pos-sales-note-panel-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef4ff;
+  border: 1px solid #cfe0ff;
+  color: var(--rs-primary);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pos-sales-note-summary {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px dashed #cfdced;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--rs-text-muted);
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.pos-sales-note-btn {
+  width: 100%;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+}
+
+.cart-total {
+  margin-top: 4px;
+  margin-bottom: 16px;
+}
+
+.checkout-btn {
+  width: 100%;
+  min-height: 46px;
+  margin-bottom: 12px;
+}
+
+.pos-side-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pos-side-actions .secondary-btn {
+  width: 100%;
+  min-height: 42px;
+}
+
+@media (max-width: 760px) {
+  .pos-sales-note-panel {
+    padding: 12px;
+  }
+
+  .pos-sales-note-panel-header {
+    align-items: flex-start;
+  }
+
+  .pos-sales-note-summary {
+    min-height: 48px;
+  }
+}
+
+/* =========================================================
+   POS - INV-5A
+   Corrección 2: panel derecho del carrito
+   Estructura estable / jerarquía / respiración visual
+   ========================================================= */
+
+.cart-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.cart-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 220px;
+  margin-bottom: 0;
+  flex: 1 1 auto;
+}
+
+.cart-summary-panel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e6eefc;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.empty-cart {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-item {
+  border: 1px solid #dbe7ff;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.cart-item:hover {
+  border-color: #cfe0ff;
+}
+
+.cart-total {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+  border: 1px solid #dbe7ff;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--rs-primary);
+  text-align: right;
+}
+
+.checkout-btn {
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.pos-side-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pos-side-actions .secondary-btn,
+.pos-side-actions .action-btn {
+  width: 100%;
+  min-height: 42px;
+  justify-content: center;
+}
+
+.quantity-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #f8fbff;
+  border: 1px solid #e6eefc;
+}
+
+.quantity-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+}
+
+@media (max-width: 1100px) {
+  .cart-items {
+    min-height: 180px;
+  }
+}
+
+@media (max-width: 760px) {
+  .cart-summary-panel {
+    margin-top: 14px;
+    padding-top: 14px;
+  }
+
+  .cart-total {
+    text-align: left;
+  }
+
+  .cart-item {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .quantity-controls {
+    justify-content: flex-start;
+  }
+}
+
+/* =========================================================
+   POS - INV-5A
+   Corrección 3: items del carrito robustos
+   Nombres largos / cantidades / eliminar / responsive fino
+   ========================================================= */
+
+.cart-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid #dbe7ff;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.cart-item-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cart-item-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.cart-item-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--rs-primary);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.cart-remove-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  color: #b91c1c;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.cart-remove-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.cart-item-unit-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rs-text-muted);
+  line-height: 1.2;
+}
+
+.cart-item-meta {
+  color: var(--rs-text-muted);
+  font-size: 12px;
+  margin-top: 2px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.cart-item-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  min-width: 122px;
+}
+
+.quantity-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #f8fbff;
+  border: 1px solid #e6eefc;
+}
+
+.quantity-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid var(--rs-border);
+  background: #fff;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quantity-btn:hover {
+  background: #eef4ff;
+}
+
+.quantity-value {
+  min-width: 24px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--rs-primary);
+}
+
+.cart-item-total {
+  font-size: 15px;
+  font-weight: 900;
+  color: #059669;
+  text-align: right;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .cart-item {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .cart-item-side {
+    width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cart-item-total {
+    text-align: right;
+  }
+}

@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RodelSoft POS - __APP_NAME__</title>
+  <link rel="stylesheet" href="__APP_BASE_PATH__/static/css/shared-shell.css?v=20260401-1" />
+  <link rel="stylesheet" href="__APP_BASE_PATH__/static/css/pos.css?v=20260414-INV3B1-SECURITY1" />
+</head>
+<body>
+  <div class="rs-app-shell">
+    <div class="pos-layout">
+
+      <!-- HEADER -->
+      <header class="rs-shell-header rs-shell-header-app">
+        <div class="rs-shell-left">
+          <div class="rs-shell-logo-box">RS</div>
+          <div class="rs-shell-brand">
+            <div id="posShellTitle" class="rs-shell-title">RodelSoft POS</div>
+            <div class="rs-shell-subtitle">__CLIENT_NAME__</div>
+          </div>
+        </div>
+
+        <div class="rs-shell-right">
+          <div class="rs-user-menu">
+            <button id="userMenuBtn" class="rs-user-trigger" type="button">
+              👤 __USER__
+            </button>
+
+            <div id="userDropdown" class="rs-user-dropdown">
+              <button id="manageCategoriesBtn" type="button" class="rs-user-dropdown-item">
+                Categorías
+              </button>
+              <button id="manageProductsBtn" type="button" class="rs-user-dropdown-item">
+                Productos
+              </button>
+              <button id="catalogsMenuBtn" type="button" class="rs-user-dropdown-item">
+                Catálogo de Precios
+              </button>
+              <button id="manageCustomersBtn" type="button" class="rs-user-dropdown-item">
+                Información de Clientes
+              </button>
+              <div id="posConfigMenuSection">
+                <div class="rs-user-dropdown-divider" role="separator"></div>
+                <button id="posConfigMenuBtn" type="button" class="rs-user-dropdown-item">
+                  Configuración POS
+                </button>
+              </div>
+              <div class="rs-user-dropdown-divider" role="separator"></div>
+              <button id="appsMenuBtn" type="button" class="rs-user-dropdown-item">
+                Volver a apps
+              </button>
+              <button id="logoutBtn" type="button" class="rs-user-dropdown-item rs-user-dropdown-item-danger">
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- MAIN -->
+      <main class="pos-main">
+
+        <!-- PANEL IZQUIERDO -->
+        <section class="catalog-panel">
+          <div class="section-title">Catálogo de Productos</div>
+
+          <div class="toolbar">
+            <button id="refreshBtn" class="action-btn">🔄 Refrescar</button>
+            <input
+              type="text"
+              id="searchInput"
+              class="search-input"
+              placeholder="Buscar por nombre, SKU o categoría..."
+            />
+          </div>
+
+          <div id="categoriesContainer" class="categories-container"></div>
+
+          <div id="productsGrid" class="products-grid">
+            <div class="loading-box">Cargando catálogo...</div>
+          </div>
+        </section>
+
+        <!-- PANEL DERECHO -->
+        <aside class="cart-panel">
+          <div id="salesNoteAssignSection" class="pos-sales-note-panel" style="display:none;">
+            <div class="pos-sales-note-panel-header">
+              <div class="pos-sales-note-panel-title">Datos documentales</div>
+              <div class="pos-sales-note-panel-badge">Nota de venta</div>
+            </div>
+
+            <div id="assignedCustomerSummary" class="pos-sales-note-summary">
+              Cliente no asignado.
+            </div>
+
+            <button id="assignCustomerBtn" class="secondary-btn pos-sales-note-btn" type="button">
+              👤 Selecciona un cliente
+            </button>
+          </div>
+          <div class="section-title">Carrito de Compras</div>
+
+          <div id="cartItems" class="cart-items">
+            <div class="empty-cart">El carrito está vacío.</div>
+          </div>
+          <div class="cart-summary-panel">
+
+            <div id="cartTotal" class="cart-total">Total: $0.00</div>
+
+            <button id="checkoutBtn" class="checkout-btn">
+              💳 Procesar Pago
+            </button>
+
+            <div class="pos-side-actions">
+              <button id="salesHistoryBtn" class="secondary-btn" type="button">
+                🧾 Historial / Cancelación
+              </button>
+            </div>
+          </div>
+        </aside>
+
+      </main>
+    </div>
+
+    <footer class="rs-shell-footer">
+      <div class="rs-shell-footer-inner">
+        <span>RodelSoft Platform</span>
+        <span>POS · UI Shell v2 · INV-3B.1 SECURITY</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- MODAL CATEGORÍAS -->
+  <div id="categoryModalBackdrop" class="rs-modal-backdrop">
+    <div class="rs-modal-card rs-modal-card-lg">
+      <div class="rs-modal-header">
+        <div>
+          <h3 id="categoryModalTitle">Categorías POS</h3>
+        </div>
+        <button type="button" class="rs-modal-close" data-close-modal>✕</button>
+      </div>
+
+      <div class="rs-modal-form">
+        <div class="catalog-toolbar">
+          <input
+            type="text"
+            id="categoryFilterInput"
+            class="search-input"
+            placeholder="Filtrar categorías..."
+          />
+          <button id="newCategoryBtn" type="button" class="action-btn">➕ Nueva categoría</button>
+        </div>
+
+        <div class="catalog-table-wrap">
+          <table class="catalog-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Color</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="categoryListBody">
+              <tr>
+                <td colspan="5" class="catalog-empty-row">Cargando categorías...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMODAL CATEGORÍA -->
+  <div id="categoryEditorBackdrop" class="rs-modal-backdrop rs-modal-sublevel">
+    <div class="rs-modal-card">
+      <div class="rs-modal-header">
+        <div>
+          <h3 id="categoryEditorTitle">Nueva categoría</h3>
+        </div>
+        <button type="button" class="rs-modal-close" data-close-category-editor>✕</button>
+      </div>
+
+      <form id="categoryForm" class="rs-modal-form">
+        <div class="rs-form-grid rs-form-grid-2">
+          <div class="rs-form-group">
+            <label for="categoryName">Nombre</label>
+            <input id="categoryName" type="text" required />
+          </div>
+
+          <div class="rs-form-group">
+            <label for="categoryColor">Color</label>
+            <input id="categoryColor" type="color" value="#0066FF" />
+          </div>
+        </div>
+
+        <div class="rs-form-group">
+          <label for="categoryDescription">Descripción</label>
+          <textarea id="categoryDescription" rows="3"></textarea>
+        </div>
+
+        <div class="rs-modal-actions">
+          <button type="button" class="secondary-btn" data-close-category-editor>Cancelar</button>
+          <button id="categorySubmitBtn" type="submit" class="action-btn">Guardar categoría</button>
+        </div>      
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL PRODUCTOS -->
+  <div id="productModalBackdrop" class="rs-modal-backdrop">
+    <div class="rs-modal-card rs-modal-card-xl">
+      <div class="rs-modal-header">
+        <div>
+          <h3 id="productModalTitle">Productos POS</h3>
+        </div>
+        <button type="button" class="rs-modal-close" data-close-modal>✕</button>
+      </div>
+
+      <div class="rs-modal-form">
+        <div class="catalog-toolbar">
+          <input
+            type="text"
+            id="productFilterInput"
+            class="search-input"
+            placeholder="Filtrar productos por nombre, SKU o categoría..."
+          />
+          <button id="newProductBtn" type="button" class="action-btn">➕ Nuevo producto</button>
+        </div>
+
+        <div class="catalog-table-wrap">
+          <table class="catalog-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th>SKU</th>
+                <th>Precio</th>
+                <th>Stock</th>
+                <th>Estatus</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="productListBody">
+              <tr>
+                <td colspan="8" class="catalog-empty-row">Cargando productos...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMODAL PRODUCTO -->
+  <div id="productEditorBackdrop" class="rs-modal-backdrop rs-modal-sublevel">
+    <div class="rs-modal-card rs-modal-card-lg">
+      <div class="rs-modal-header">
+        <div>
+          <h3 id="productEditorTitle">Nuevo producto</h3>
+        </div>
+        <button type="button" class="rs-modal-close" data-close-product-editor>✕</button>
+      </div>
+
+      <form id="productForm" class="rs-modal-form">
+        <div class="rs-form-section">
+          <div class="rs-form-section-title">Datos del producto</div>
+
+          <div class="rs-form-grid rs-form-grid-2">
+            <div class="rs-form-group">
+              <label for="productName">Nombre</label>
+              <input id="productName" type="text" required />
+            </div>
+
+            <div class="rs-form-group">
+              <label for="productCategoryId">Categoría</label>
+              <select id="productCategoryId">
+                <option value="">Seleccione categoría...</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="rs-form-group">
+            <label for="productDescription">Descripción</label>
+            <textarea id="productDescription" rows="3"></textarea>
+          </div>
+
+          <div class="rs-form-grid rs-form-grid-3">
+            <div class="rs-form-group">
+              <label for="productType">Tipo</label>
+              <select id="productType">
+                <option value="physical">Producto Físico</option>
+                <option value="service">Servicio</option>
+              </select>
+            </div>
+
+            <div class="rs-form-group">
+              <label for="productSku">SKU</label>
+              <input id="productSku" type="text" />
+            </div>
+
+            <div class="rs-form-group">
+              <label for="productBarcode">Código de barras</label>
+              <input id="productBarcode" type="text" />
+            </div>
+          </div>
+        </div>
+
+        <div class="rs-form-section">
+          <div class="rs-form-section-title">Configuración operativa</div>
+
+          <div class="rs-form-grid rs-form-grid-3">
+            <div class="rs-form-group">
+              <label for="productInventoryMode">Gestión de Inventario</label>
+              <select id="productInventoryMode">
+                <option value="pos_legacy">Local por RodelPOS</option>
+                <option value="stocks_api">Centralizada por RodelStocks</option>
+              </select>
+            </div>
+
+            <div class="rs-form-group">
+              <label for="productStockItemId">id RodelStocks</label>
+              <input id="productStockItemId" type="number" min="1" />
+            </div>
+
+            <div class="rs-form-group rs-checkbox-group rs-checkbox-group-inline">
+              <label class="rs-checkbox-label">
+                <input id="trackInventory" type="checkbox" checked />
+                Rastrear inventario
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div id="localInventorySection" class="rs-form-section">
+          <div class="rs-form-section-title">Inventario local POS</div>
+
+          <div class="rs-form-grid rs-form-grid-3">
+            <div class="rs-form-group">
+              <label for="productCostPrice">Costo</label>
+              <input id="productCostPrice" type="number" step="0.01" min="0" value="0" />
+            </div>
+
+            <div class="rs-form-group">
+              <label for="productStockQuantity">Cantidad en stock</label>
+              <input id="productStockQuantity" type="number" step="1" min="0" value="0" />
+            </div>
+
+            <div class="rs-form-group">
+              <label for="productMinStock">Stock mínimo</label>
+              <input id="productMinStock" type="number" step="1" min="0" value="0" />
+            </div>
+          </div>
+        </div>
+
+        <div class="rs-modal-actions">
+          <button type="button" class="secondary-btn" data-close-product-editor>Cancelar</button>
+          <button id="productSubmitBtn" type="submit" class="action-btn">Guardar producto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL CATÁLOGO COMERCIAL -->
+  <div id="priceModalBackdrop" class="rs-modal-backdrop">
+    <div class="rs-modal-card rs-modal-card-xl">
+      <div class="rs-modal-header">
+        <div>
+          <h3 id="priceModalTitle">Catálogo comercial POS</h3>
+        </div>
+        <button type="button" class="rs-modal-close" data-close-modal>✕</button>
+      </div>
+
+      <div class="rs-modal-form">
+        <div class="catalog-toolbar">
+          <input
+            type="text"
+            id="commercialFilterInput"
+            class="search-input"
+            placeholder="Filtrar catálogo comercial..."
+          />
+          <button id="newCommercialBtn" type="button" class="action-btn">➕ Nuevo precio</button>
+        </div>
+
+        <div class="catalog-table-wrap">
+          <table class="catalog-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>SKU</th>
+                <th>Precio</th>
+                <th>Estatus</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="catalogCommercialListBody">
+              <tr>
+                <td colspan="6" class="catalog-empty-row">Cargando catálogo comercial...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMODAL CATÁLOGO COMERCIAL -->
+  <div id="priceEditorBackdrop" class="rs-modal-backdrop rs-modal-sublevel">
+    <div class="rs-modal-card rs-modal-card-lg">
+      <div class="rs-modal-header">
+        <div>
+          <h3 id="priceEditorTitle">Nuevo precio comercial</h3>
+        </div>
+        <button type="button" class="rs-modal-close" data-close-price-editor>✕</button>
+      </div>
+
+      <div class="rs-modal-form">
+        <form id="priceForm">
+          <div class="rs-form-section">
+            <div class="rs-form-section-title">Configuración comercial</div>
+
+            <div class="rs-form-grid rs-form-grid-4">
+              <div class="rs-form-group">
+                <label for="catalogItemSelect">Producto</label>
+                <select id="catalogItemSelect">
+                  <option value="">Seleccione el Producto...</option>
+                </select>
+              </div>
+
+              <div class="rs-form-group">
+                <label for="catalogSalePrice">Precio de Venta</label>
+                <input id="catalogSalePrice" type="number" step="0.01" min="0" value="0" />
+              </div>
+
+              <div class="rs-form-group">
+                <label for="catalogTaxPercent">IVA (%)</label>
+                <input id="catalogTaxPercent" type="number" step="0.01" min="0" value="16" />
+              </div>
+
+              <div class="rs-form-group rs-checkbox-group rs-checkbox-group-inline">
+                <label class="rs-checkbox-label">
+                  <input id="catalogIsActive" type="checkbox" checked />
+                  Está activo
+                </label>
+              </div>
+            </div>
+
+          <div class="rs-modal-actions">
+            <button type="button" class="secondary-btn" data-close-price-editor>Cerrar</button>
+            <button id="priceSubmitBtn" type="submit" class="action-btn">Guardar catálogo</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL HISTORIAL / CANCELACIÓN (INV-4B base UI) -->
+  <div id="salesOpsModalBackdrop" class="rs-modal-backdrop">
+    <div class="rs-modal-card rs-modal-card-xl">
+      <div class="rs-modal-header">
+        <div>
+          <h3 id="salesOpsModalTitle">Historial / Cancelación</h3>
+        </div>
+        <button type="button" class="rs-modal-close" data-close-sales-ops>✕</button>
+      </div>
+
+      <div class="rs-modal-form">
+        <div class="catalog-toolbar" style="grid-template-columns: 1fr auto;">
+          <input
+            type="text"
+            id="salesOpsTicketInput"
+            class="search-input"
+            placeholder="Buscar ticket por folio / número de venta..."
+          />
+          <button id="salesOpsSearchBtn" type="button" class="action-btn">🔎 Buscar ticket</button>
+        </div>
+
+        <div class="rs-form-section" style="margin-top: 1rem;">
+          <div class="rs-form-section-title">Reintentos pendientes (ventas / cancelaciones)</div>
+
+          <div class="catalog-table-wrap">
+            <table class="catalog-table">
+              <thead>
+                <tr>
+                  <th>Ticket</th>
+                  <th>Tipo</th>
+                  <th>Origen</th>
+                  <th>Motivo / Error</th>
+                  <th>Fecha</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="salesRetryListBody">
+                <tr>
+                  <td colspan="6" class="catalog-empty-row">
+                    Sin reintentos pendientes en esta revisión.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMODAL DETALLE TICKET / CANCELACIÓN / REIMPRESIÓN -->
+  <div id="saleDetailModalBackdrop" class="rs-modal-backdrop rs-modal-sublevel">
+    <div class="rs-modal-card rs-modal-card-lg">
+      <div class="rs-modal-header">
+        <div>
+          <h3 id="saleDetailModalTitle">Detalle de ticket</h3>
+        </div>
+        <button type="button" class="rs-modal-close" data-close-sale-detail>✕</button>
+      </div>
+
+      <div class="rs-modal-form">
+        <div class="rs-form-section">
+          <div class="rs-form-grid rs-form-grid-3">
+            <div class="rs-form-group">
+              <label>Estatus</label>
+              <input id="saleDetailStatus" type="text" readonly value="Sin consultar" />
+            </div>
+
+            <div class="rs-form-group">
+              <label>Folio</label>
+              <input id="saleDetailNumber" type="text" readonly value="" />
+            </div>
+
+            <div class="rs-form-group">
+              <label>Origen</label>
+              <input id="saleDetailSource" type="text" readonly value="" />
+            </div>
+          </div>
+        </div>
+
+        <div class="rs-form-section">
+          <div class="rs-form-section-title">Información del ticket</div>
+          <div
+            id="saleDetailSummary"
+            class="catalog-table-wrap"
+            style="padding: 1rem; min-height: 180px; border: 1px solid #dbe4f0; border-radius: 12px; background: #f8fbff;"
+          >
+            <div class="catalog-empty-row" style="border: none;">
+              Busque un ticket para visualizar su detalle.
+            </div>
+          </div>
+        </div>
+
+        <div class="rs-form-group">
+          <label for="saleCancelReason">Motivo de cancelación</label>
+          <textarea
+            id="saleCancelReason"
+            rows="3"
+            placeholder="Capture el motivo de cancelación..."
+          ></textarea>
+        </div>
+
+        <div class="rs-modal-actions" style="justify-content: space-between;">
+          <div>
+            <button id="saleCancelBtn" type="button" class="action-btn" style="display:none;">
+              ❌ Cancelar venta
+            </button>
+          </div>
+
+          <div style="display:flex; gap:0.75rem;">
+            <button id="saleReprintBtn" type="button" class="secondary-btn">
+              🖨️ Reimprimir
+            </button>
+            <button type="button" class="secondary-btn" data-close-sale-detail>Salir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    window.POS_CONFIG = {
+      APP_BASE_PATH: "__APP_BASE_PATH__",
+      ROLE: "__ROLE__",
+      IS_SYSTEM_ADMIN: __IS_SYSTEM_ADMIN__,
+      IS_APP_CLIENT_ADMIN: __IS_APP_CLIENT_ADMIN__,
+      IS_MEMBER: __IS_MEMBER__,
+      CAN_MANAGE_CATALOGS: __CAN_MANAGE_CATALOGS__,
+      CAN_VIEW_POS_CONFIG: __CAN_VIEW_POS_CONFIG__,
+      CAN_EDIT_POS_CONFIG: __CAN_EDIT_POS_CONFIG__
+    };
+  </script>
+  <script type="module" src="__APP_BASE_PATH__/static/pos.js?v=20260415-INV3B3-STOCKS1"></script>
+</body>
+</html>

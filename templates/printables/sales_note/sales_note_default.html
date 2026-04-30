@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Nota de Venta</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      margin: 0;
+      padding: 16px;
+      color: #111;
+    }
+
+    .ticket {
+      max-width: 320px;
+      margin: 0 auto;
+    }
+
+    .center { text-align: center; }
+    .right { text-align: right; }
+    .bold { font-weight: bold; }
+
+    .mb-4 { margin-bottom: 4px; }
+    .mb-8 { margin-bottom: 8px; }
+    .mb-12 { margin-bottom: 12px; }
+
+    .divider {
+      border-top: 1px dashed #999;
+      margin: 8px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 2px 0;
+      vertical-align: top;
+    }
+
+    th {
+      text-align: left;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 4px;
+    }
+
+    .totals td {
+      padding: 2px 0;
+    }
+
+    @media print {
+      body {
+        padding: 0;
+      }
+
+      .ticket {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ticket">
+    <div class="center bold mb-4">{{ company.display_name }}</div>
+    <div class="center bold mb-8">NOTA DE VENTA</div>
+
+    <div class="mb-4"><span class="bold">Folio:</span> {{ sale.number }}</div>
+    <div class="mb-4"><span class="bold">Fecha:</span> {{ sale.created_at or '' }}</div>
+
+    {% if sale.customer_name %}
+      <div class="mb-4"><span class="bold">Cliente:</span> {{ sale.customer_name }}</div>
+    {% endif %}
+
+    {% if sale.cashier_name %}
+      <div class="mb-4"><span class="bold">Cajero:</span> {{ sale.cashier_name }}</div>
+    {% endif %}
+
+    <div class="divider"></div>
+
+    <table class="mb-8">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th class="right">Cant</th>
+          <th class="right">P.U.</th>
+          <th class="right">Imp</th>
+          <th class="right">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>
+            {{ item.name }}
+            {% if item.sku %}
+              <div style="font-size:10px; color:#555;">SKU: {{ item.sku }}</div>
+            {% endif %}
+          </td>
+          <td class="right">{{ '%.2f'|format(item.qty) }}</td>
+          <td class="right">${{ '%.2f'|format(item.unit_price) }}</td>
+          <td class="right">{{ '%.2f'|format(item.tax_percent) }}%</td>
+          <td class="right">${{ '%.2f'|format(item.total_price) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="divider"></div>
+
+    <table class="totals mb-8">
+      <tr>
+        <td>Subtotal</td>
+        <td class="right">${{ '%.2f'|format(sale.subtotal) }}</td>
+      </tr>
+      <tr>
+        <td>Impuesto</td>
+        <td class="right">${{ '%.2f'|format(sale.tax_amount) }}</td>
+      </tr>
+      <tr>
+        <td class="bold">Total</td>
+        <td class="right bold">${{ '%.2f'|format(sale.total) }}</td>
+      </tr>
+    </table>
+
+    <div class="mb-4"><span class="bold">Método de pago:</span> {{ sale.payment_method_label or sale.payment_method }}</div>
+
+    {% if labels.sales_note_text_default %}
+      <div class="mb-4 center">{{ labels.sales_note_text_default }}</div>
+    {% endif %}
+
+    {% if labels.sales_note_extra_text %}
+      <div class="mb-4 center">{{ labels.sales_note_extra_text }}</div>
+    {% endif %}
+
+    <div class="center" style="margin-top: 16px;">
+      {{ labels.ticket_footer_text or 'Gracias por su compra' }}
+    </div>
+  </div>
+
+  <script>
+    window.onload = function () {
+      window.focus();
+      window.print();
+    };
+  </script>
+</body>
+</html>

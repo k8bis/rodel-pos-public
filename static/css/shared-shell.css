@@ -1,0 +1,277 @@
+/* =========================================================
+   RodelSoft Platform - Shared UI Shell v1
+   Archivo fuente oficial del shell visual reutilizable
+   Basado en clases reales ya usadas por POS y Notes External
+   ========================================================= */
+
+:root {
+  --rs-bg: #f5f7fb;
+  --rs-surface: #ffffff;
+  --rs-text: #1f2937;
+  --rs-text-muted: #6b7280;
+  --rs-primary: #003666;
+  --rs-primary-hover: #1e40af;
+  --rs-accent: #0066ff;
+  --rs-border: #d9e1ec;
+  --rs-danger: #dc2626;
+  --rs-danger-hover: #b91c1c;
+  --rs-success: #059669;
+
+  --rs-radius-card: 14px;
+  --rs-radius-btn: 10px;
+  --rs-radius-pill: 999px;
+
+  --rs-shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.12);
+  --rs-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --rs-shadow-lg: 0 14px 28px rgba(0, 0, 0, 0.14);
+
+  --rs-font: Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--rs-font);
+  background: var(--rs-bg);
+  color: var(--rs-text);
+}
+
+/* =========================
+   App Shell base
+   ========================= */
+.rs-app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.rs-main {
+  flex: 1;
+}
+
+/* =========================
+   Shared Header v1
+   ========================= */
+.rs-shell-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: var(--rs-primary);
+  color: #fff;
+  border-bottom: 4px solid var(--rs-accent);
+  box-shadow: 0 8px 24px rgba(0, 51, 102, 0.18);
+  position: relative;
+  z-index: 10;
+  flex-wrap: wrap;
+}
+
+.rs-shell-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.rs-shell-logo-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--rs-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  box-shadow: var(--rs-shadow-sm);
+  flex-shrink: 0;
+}
+
+.rs-shell-brand {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rs-shell-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.rs-shell-subtitle {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  line-height: 1.2;
+  color: #fff;
+}
+
+.rs-shell-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* =========================
+   Shared User Menu v1
+   ========================= */
+.rs-user-menu {
+  position: relative;
+}
+
+.rs-user-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border-radius: var(--rs-radius-pill);
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rs-user-trigger:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.rs-user-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid rgba(0, 51, 102, 0.08);
+  border-radius: 12px;
+  box-shadow: var(--rs-shadow-lg);
+  padding: 8px;
+  z-index: 50;
+  display: none;
+}
+
+.rs-user-dropdown.show {
+  display: block;
+}
+
+.rs-user-dropdown-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--rs-primary);
+  cursor: pointer;
+}
+
+.rs-user-dropdown-item:hover {
+  background: #eef4ff;
+}
+
+.rs-user-dropdown-item-danger {
+  color: var(--rs-danger);
+}
+
+.rs-user-dropdown-item-danger:hover {
+  background: #fef2f2;
+}
+
+/* =========================
+   Shared Footer v1
+   ========================= */
+.rs-shell-footer {
+  border-top: 1px solid var(--rs-border);
+  background: #fff;
+  margin-top: auto;
+}
+
+.rs-shell-footer-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  font-size: 13px;
+  color: var(--rs-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* =========================
+   Shared content helpers
+   ========================= */
+.rs-page-container {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.rs-card {
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: 16px;
+  box-shadow: var(--rs-shadow-md);
+}
+
+.rs-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.rs-btn-primary {
+  background: var(--rs-primary);
+  color: #fff;
+}
+
+.rs-btn-primary:hover {
+  background: var(--rs-primary-hover);
+}
+
+.rs-btn-secondary {
+  background: #ffffff;
+  color: var(--rs-primary);
+  border: 1px solid var(--rs-border);
+}
+
+.rs-btn-secondary:hover {
+  background: #eef4ff;
+}
+
+@media (max-width: 980px) {
+  .rs-shell-header {
+    align-items: stretch;
+  }
+
+  .rs-shell-right {
+    justify-content: flex-start;
+  }
+
+  .rs-shell-footer-inner {
+    justify-content: flex-start;
+  }
+}
+
+.rs-user-dropdown-divider {
+  height: 1px;
+  margin: 8px 10px;
+  background: rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  pointer-events: none;
+}

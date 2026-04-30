@@ -1,0 +1,25 @@
+services:
+  rodel-pos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rodel-pos
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8001:8000"
+    networks:
+      rodel_pos_net:
+        ipv4_address: 172.32.0.10
+      rodelsoftadmin_rodelsoft_net:
+
+networks:
+  rodel_pos_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.32.0.0/16
+
+  rodelsoftadmin_rodelsoft_net:
+    external: true
