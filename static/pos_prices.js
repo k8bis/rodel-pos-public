@@ -17,9 +17,9 @@ export function createPosPrices({
 
   let editingPriceId = null;
 
-  function openModal(backdrop) {
-    if (backdrop) backdrop.classList.add("show");
-  }
+  //function openModal(backdrop) {
+  //  if (backdrop) backdrop.classList.add("show");
+  //}
 
   function closeModal(backdrop) {
     if (backdrop) backdrop.classList.remove("show");
@@ -157,7 +157,13 @@ export function createPosPrices({
 
   function openCommercialManager() {
     renderCommercialTable();
-    openModal(priceModal.backdrop);
+    const modal = document.getElementById("priceModalBackdrop");
+    if (modal) {
+      document.querySelectorAll(".rs-modal-backdrop.show").forEach(el => {
+        el.classList.remove("show");
+      });
+      modal.classList.add("show");
+    }
   }
 
   function resetPriceForm() {
@@ -204,7 +210,10 @@ export function createPosPrices({
 
     setButtonVisibility(priceEditor.submitBtn, true);
 
-    openModal(priceEditor.backdrop);
+    const modal = document.getElementById("priceEditorBackdrop");
+    if (modal) {
+      modal.classList.add("show");
+    }
   }
 
   function populateCatalogItemSelectForEdit(item) {
@@ -223,11 +232,13 @@ export function createPosPrices({
     priceEditor.catalogItemSelect.value = String(selectedId);
   }
 
-  function openEditPriceEditor(priceId) {
+  async function openEditPriceEditor(priceId) {
+    await loadData();
     if (!canManageCatalogs()) return;
 
     const prices = getPosPrices();
     const item = prices.find(p => String(p.id) === String(priceId));
+
     if (!item) return;
 
     editingPriceId = item.id;
@@ -271,7 +282,10 @@ export function createPosPrices({
 
     setButtonVisibility(priceEditor.submitBtn, true);
 
-    openModal(priceEditor.backdrop);
+    const modal = document.getElementById("priceEditorBackdrop");
+    if (modal) {
+      modal.classList.add("show");
+    }
   }
 
   async function submitPriceForm(e) {

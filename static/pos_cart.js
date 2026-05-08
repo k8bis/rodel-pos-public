@@ -171,6 +171,43 @@ function renderCart() {
     }
 
     const payload = buildCheckoutPayload();
+    // 🔴 VALIDACIÓN FINAL DE INVENTARIO (BUG P5)
+    const latestProducts = getProducts();
+
+    const latestMap = {};
+    for (const p of (latestProducts || [])) {
+      latestMap[String(p.id)] = p;
+    }
+
+    for (const item of items) {
+      const fresh = latestMap[String(item.id)];
+
+      if (!fresh) {
+        return {
+          ok: false,
+          response: null,
+          result: { detail: `Producto ya no disponible: ${item.name}` },
+          payload
+        };
+      }
+
+      const isServiceItem = isService(fresh);
+
+      if (!isServiceItem) {
+        const stock = Number(fresh.stock_quantity || 0);
+
+        if (stock < Number(item.quantity)) {
+          return {
+            ok: false,
+            response: null,
+            result: {
+              detail: `Inventario insuficiente para ${item.name}. Disponible: ${stock}`
+            },
+            payload
+          };
+        }
+      }
+    }
 
     try {
       const { response, result } = await api.createSale(payload);

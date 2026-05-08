@@ -82,7 +82,34 @@ export function createPosCatalog(deps) {
       ].filter(Boolean).join(" ");
 
       if (!disabled) {
-        card.addEventListener("click", () => addToCart(product.id));
+        card.addEventListener("click", async () => {
+          try {
+            // consulta backend en tiempo real
+            const freshProducts = await window.POS_API.fetchProducts();
+
+            const fresh = (freshProducts || []).find(
+              p => String(p.id) === String(product.id)
+            );
+
+            if (!fresh) {
+              alert("El producto ya no está disponible.");
+              return;
+            }
+
+            const isService = String(fresh?.product_type || "physical").toLowerCase() === "service";
+
+            if (!isService && fresh.sellable_now !== true) {
+              alert("El producto ya no tiene inventario disponible.");
+              return;
+            }
+
+            addToCart(product.id);
+
+          } catch (error) {
+            console.error("Error validando inventario:", error);
+            alert("No se pudo validar el inventario en tiempo real.");
+          }
+        });
       }
 
       const overlay = outOfStock

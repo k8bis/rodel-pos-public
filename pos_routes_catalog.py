@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from auth import verify_token
 from collections import defaultdict
-from db import PosPrice, Product, Category, get_pos_db
+from db import PosPrice, Product, Category, get_pos_db, PosCustomer
 from permissions import resolve_context, validate_permission, get_role_info
 from pos_helpers import (
     get_catalog_source,
@@ -259,7 +259,9 @@ def get_pos_prices(
                     "catalog_item_id": item.catalog_item_id,
                     "catalog_source": "pos",
                     "sale_price": float(item.sale_price or 0),
+                    "tax_percent": float(item.tax_percent or 0),
                     "is_active": bool(item.is_active),
+                    
 
                     # Fuente operativa viva
                     "product_name": product.name if product else None,
@@ -287,6 +289,7 @@ def get_pos_prices(
                     "catalog_item_id": item.catalog_item_id,
                     "catalog_source": "stocks",
                     "sale_price": float(item.sale_price or 0),
+                    "tax_percent": float(item.tax_percent or 0),    
                     "is_active": bool(item.is_active),
 
                     # Fuente viva Stocks
@@ -314,6 +317,7 @@ def get_pos_prices(
                 "catalog_item_id": item.catalog_item_id,
                 "catalog_source": "stocks",
                 "sale_price": float(item.sale_price or 0),
+                "tax_percent": float(item.tax_percent or 0),
                 "is_active": bool(item.is_active),
 
                 # Representación comercial fallback (no origen vivo)
@@ -428,6 +432,7 @@ def create_pos_price(
             sale_price=payload.get("sale_price", 0),
             is_active=bool(payload.get("is_active", True)),
             catalog_source="pos",
+            tax_percent=payload.get("tax_percent", 0),
 
             # Snapshot solo de compatibilidad / trazabilidad
             display_name_snapshot=product.name or f"Producto {catalog_item_id}",
@@ -464,6 +469,7 @@ def create_pos_price(
             sale_price=payload.get("sale_price", 0),
             is_active=bool(payload.get("is_active", True)),
             catalog_source="stocks",
+            tax_percent=payload.get("tax_percent",0.0),
 
             # Snapshot solo de compatibilidad / trazabilidad
             display_name_snapshot=stock_item.get("name") or f"Item {catalog_item_id}",
@@ -509,6 +515,9 @@ def update_pos_price(
 
     if "sale_price" in payload:
         item.sale_price = payload["sale_price"]
+    
+    if "tax_percent" in payload:
+        item.tax_percent = payload["tax_percent"]
 
     if "is_active" in payload:
         item.is_active = bool(payload["is_active"])
@@ -805,6 +814,7 @@ def get_catalog_settings(
             "default_tax_percent": 0.0,
             "default_ticket_cfdi_use": "S01",
             "default_ticket_tax_regime": "616",
+            "default_customer_id": None,
 
             "sales_note_text_default": None,
             "sales_note_extra_text": None,
@@ -823,6 +833,28 @@ def get_catalog_settings(
     sales_note_template_name = (getattr(settings, "sales_note_template_name", None) or "").strip() or "default.html"
 
     catalog_integration_url = (getattr(settings, "catalog_integration_url", None) or "").strip() or None
+    
+    default_customer_id = getattr(settings, "default_customer_id", None)
+
+    default_customer = None
+    default_customer_name = None
+
+    if default_customer_id:
+        default_customer = (
+            db.query(PosCustomer)
+            .filter(
+                PosCustomer.client_id == client_id,
+                PosCustomer.id == default_customer_id,
+            )
+            .first()
+        )
+
+        if default_customer:
+            default_customer_name = (
+                default_customer.business_name
+                or default_customer.contact_name
+                or f"Cliente {default_customer.id}"
+            )
 
     return {
         "client_id": client_id,
@@ -845,6 +877,8 @@ def get_catalog_settings(
         "default_tax_percent": float(getattr(settings, "default_tax_percent", 0.0) or 0.0),
         "default_ticket_cfdi_use": (getattr(settings, "default_ticket_cfdi_use", None) or "S01").strip() or "S01",
         "default_ticket_tax_regime": (getattr(settings, "default_ticket_tax_regime", None) or "616").strip() or "616",
+        "default_customer_id": (default_customer_id or None),
+        "default_customer_name": (default_customer_name or None),
 
         "sales_note_text_default": (getattr(settings, "sales_note_text_default", None) or "").strip() or None,
         "sales_note_extra_text": (getattr(settings, "sales_note_extra_text", None) or "").strip() or None,

@@ -461,47 +461,49 @@
   <!-- MODAL HISTORIAL / CANCELACIÓN (INV-4B base UI) -->
   <div id="salesOpsModalBackdrop" class="rs-modal-backdrop">
     <div class="rs-modal-card rs-modal-card-xl">
-      <div class="rs-modal-header">
-        <div>
-          <h3 id="salesOpsModalTitle">Historial / Cancelación</h3>
-        </div>
-        <button type="button" class="rs-modal-close" data-close-sales-ops>✕</button>
-      </div>
-
-      <div class="rs-modal-form">
-        <div class="catalog-toolbar" style="grid-template-columns: 1fr auto;">
-          <input
-            type="text"
-            id="salesOpsTicketInput"
-            class="search-input"
-            placeholder="Buscar ticket por folio / número de venta..."
-          />
-          <button id="salesOpsSearchBtn" type="button" class="action-btn">🔎 Buscar ticket</button>
+      <div class="rs-modal-card rs-modal-card-xl">
+        <div class="rs-modal-header">
+          <div>
+            <h3 id="salesOpsModalTitle">Historial / Cancelación</h3>
+          </div>
+          <button type="button" class="rs-modal-close" data-close-sales-ops>✕</button>
         </div>
 
-        <div class="rs-form-section" style="margin-top: 1rem;">
-          <div class="rs-form-section-title">Reintentos pendientes (ventas / cancelaciones)</div>
+        <div class="rs-modal-form">
+          <div class="catalog-toolbar" style="grid-template-columns: 1fr auto;">
+            <input
+              type="text"
+              id="salesOpsTicketInput"
+              class="search-input"
+              placeholder="Buscar ticket por folio / número de venta..."
+            />
+            <button id="salesOpsSearchBtn" type="button" class="action-btn">🔎 Buscar ticket</button>
+          </div>
 
-          <div class="catalog-table-wrap">
-            <table class="catalog-table">
-              <thead>
-                <tr>
-                  <th>Ticket</th>
-                  <th>Tipo</th>
-                  <th>Origen</th>
-                  <th>Motivo / Error</th>
-                  <th>Fecha</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody id="salesRetryListBody">
-                <tr>
-                  <td colspan="6" class="catalog-empty-row">
-                    Sin reintentos pendientes en esta revisión.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="rs-form-section" style="margin-top: 1rem;">
+            <div class="rs-form-section-title">Reintentos pendientes (ventas / cancelaciones)</div>
+
+            <div class="catalog-table-wrap">
+              <table class="catalog-table">
+                <thead>
+                  <tr>
+                    <th>Ticket</th>
+                    <th>Tipo</th>
+                    <th>Origen</th>
+                    <th>Motivo / Error</th>
+                    <th>Fecha</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="salesRetryListBody">
+                  <tr>
+                    <td colspan="6" class="catalog-empty-row">
+                      Sin reintentos pendientes en esta revisión.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

@@ -8,6 +8,8 @@ console.log("POS_JS_INV3B1_SECURITY_FINAL_V2");
 
 const api = createPosApi();
 
+window.POS_API = api;
+
 /* =========================
    CONFIG / SEGURIDAD
 ========================= */
@@ -75,6 +77,8 @@ let pendingSalesNoteData = {
   ticket_footer_text: "",
   payment_method_label: "Efectivo"
 };
+
+let currentSaleId = null;
 
 /* =========================
    HELPERS GENERALES
@@ -190,8 +194,21 @@ function money(value) {
 }
 
 function openModal(backdropId) {
-  const el = document.getElementById(backdropId);
-  if (el) el.classList.add("show");
+  const target = document.getElementById(backdropId);
+  if (!target) return;
+
+  document.querySelectorAll(".rs-modal-backdrop.show").forEach(el => {
+    if (el !== target && !el.classList.contains("rs-modal-sublevel")) {
+      el.classList.remove("show");
+    }
+  });
+
+  target.dataset.justOpened = "true";
+  target.classList.add("show");
+
+  setTimeout(() => {
+    delete target.dataset.justOpened;
+  }, 50);
 }
 
 function closeModal(backdropId) {
@@ -203,6 +220,8 @@ function closeAllMainModals() {
   closeModal("categoryModalBackdrop");
   closeModal("productModalBackdrop");
   closeModal("priceModalBackdrop");
+  closeModal("saleDetailModalBackdrop");
+  closeModal("salesOpsModalBackdrop");
 }
 
 async function closeSalesOpsModalAndRefresh() {
@@ -357,8 +376,8 @@ function getLoggedUserDisplayName() {
 
 function resetPendingSalesNoteData() {
   pendingSalesNoteData = {
-    customer_id: null,
-    customer_label: "",
+    customer_id: catalogSettings?.default_customer_id || null,
+    customer_label: catalogSettings?.default_customer_name || "",
     attended_by: getLoggedUserDisplayName(),
     sales_note_text: String(catalogSettings?.sales_note_text_default || "").trim(),
     sales_note_extra_text: String(catalogSettings?.sales_note_extra_text || "").trim(),
@@ -516,6 +535,7 @@ async function openAssignCustomerFlow() {
 async function loadData() {
   try {
     catalogSettings = await api.loadCatalogSettings();
+    window.CATALOG_SETTINGS = catalogSettings; // para debug en consola
     setHeaderTitle();
 
     posBlocked = shouldBlockPosByCatalogConfig();
@@ -609,6 +629,8 @@ async function loadData() {
     applyCatalogSourceUiRules();
     applyRoleUiRules();
     applyBlockedUiRules();
+
+    resetPendingSalesNoteData();
     updateSalesNoteAssignUi();
   } catch (error) {
     console.error("Error cargando datos del POS:", error);
@@ -982,149 +1004,107 @@ function setupSalesHistoryButton() {
     }
   }
 
-  function formatRetryDate(value) {
-    if (!value) return "-";
-
-    const dt = new Date(value);
-    if (Number.isNaN(dt.getTime())) return escapeHtml(String(value));
-
-    return dt.toLocaleString("es-MX");
-  }
-
-  function setRetryTableLoading() {
+  async function loadRetryTable() {
     if (!salesRetryListBody) return;
 
     salesRetryListBody.innerHTML = `
       <tr>
-        <td colspan="6" class="catalog-empty-row">Cargando reintentos pendientes...</td>
+        <td colspan="6" class="catalog-empty-row">Cargando...</td>
       </tr>
     `;
-  }
+    try {
+      const result = await api.fetchSalesRetries();
+      const items = result?.items || [];
 
-  function renderRetryTable(items) {
-    if (!salesRetryListBody) return;
+      if (!items.length) {
+        salesRetryListBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="catalog-empty-row">
+              Sin reintentos pendientes.
+            </td>
+          </tr>
+        `;
+        return;
+      }
 
-    if (!Array.isArray(items) || !items.length) {
-      salesRetryListBody.innerHTML = `
+      salesRetryListBody.innerHTML = items.map(item => `
         <tr>
-          <td colspan="6" class="catalog-empty-row">
-            Sin reintentos pendientes en esta revisión.
-          </td>
-        </tr>
-      `;
-      return;
-    }
-
-    salesRetryListBody.innerHTML = items.map(item => {
-      const ticket = escapeHtml(item?.sale_number || "-");
-      const typeLabel = escapeHtml(item?.retry_type_label || "Venta");
-      const originLabel = escapeHtml(item?.origin_label || "POS");
-      const lastMessage = escapeHtml(item?.last_message || "Pendiente de conciliación de inventario");
-      const eventDate = escapeHtml(formatRetryDate(item?.event_date));
-
-      return `
-        <tr>
-          <td>${ticket}</td>
-          <td>${typeLabel}</td>
-          <td>${originLabel}</td>
-          <td>${lastMessage}</td>
-          <td>${eventDate}</td>
+          <td>${item.sale_number}</td>
+          <td>${item.retry_type_label}</td>
+          <td>${item.origin_label}</td>
+          <td>${item.last_message}</td>
+          <td>${item.event_date}</td>
           <td>
-            <button
-              type="button"
-              class="secondary-btn"
-              data-retry-ticket="${ticket}"
-            >
+            <button class="secondary-btn" data-retry-ticket="${item.sale_number}">
               Abrir
             </button>
           </td>
         </tr>
-      `;
-    }).join("");
+      `).join("");
 
-    salesRetryListBody.querySelectorAll("[data-retry-ticket]").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const ticket = String(btn.dataset.retryTicket || "").trim();
-        if (!ticket) return;
-
-        if (salesOpsTicketInput) {
-          salesOpsTicketInput.value = ticket;
-        }
-
-        await searchTicketAndOpenDetail();
-      });
-    });
-  }
-
-  async function loadRetryTable() {
-    if (!salesRetryListBody) return;
-
-    setRetryTableLoading();
-
-    try {
-      const result = await api.fetchSalesRetries();
-      renderRetryTable(result?.items || []);
-    } catch (error) {
-      console.error("Error cargando reintentos pendientes:", error);
-
+    } catch (e) {
       salesRetryListBody.innerHTML = `
         <tr>
           <td colspan="6" class="catalog-empty-row">
-            ${escapeHtml(error?.message || "No se pudo cargar la lista de reintentos.")}
+            Error cargando reintentos
           </td>
         </tr>
       `;
     }
   }
 
-  async function openSalesOpsModal() {
-    if (salesOpsModalTitle) {
-      salesOpsModalTitle.textContent = getModalTitle("Historial / Cancelación");
-    }
-
-    if (saleDetailModalTitle) {
-      saleDetailModalTitle.textContent = getModalTitle("Detalle de ticket");
-    }
-
-    if (salesOpsTicketInput) {
-      salesOpsTicketInput.value = "";
-    }
-
-    resetSaleDetail();
-    openModal("salesOpsModalBackdrop");
-    await loadRetryTable();
-  }
-
   async function searchTicketAndOpenDetail() {
     const ticket = String(salesOpsTicketInput?.value || "").trim();
-
     if (!ticket) {
-      alert("Capture un número de ticket.");
+      alert("Debe capturar un número de ticket");
       return;
     }
 
     try {
       const sale = await api.fetchSaleByTicket(ticket);
 
-      if (saleDetailStatus) {
-        const normalizedStatus = String(sale?.status || "").trim().toLowerCase();
-        saleDetailStatus.value =
-          normalizedStatus === "cancelled"
-            ? "Cancelado"
-            : normalizedStatus === "pending_inventory"
-            ? "Pendiente inventario"
-            : "Activo";
+      if (saleDetailNumber) {
+        saleDetailNumber.value = sale.sale_number || ticket;
+      }
+      
+      currentSaleId = sale.id || null;
+
+      // =========================
+      // CONTROL VISIBILIDAD CANCELACIÓN
+      // =========================
+      if (saleCancelBtn) {
+        const status = String(sale?.status || "").toLowerCase();
+
+        const isAdminUser = isSystemAdmin() || isAppClientAdmin();
+
+        const canCancel =
+          isAdminUser &&
+          status !== "cancelled";
+
+        saleCancelBtn.style.display = canCancel ? "" : "none";
       }
 
-      if (saleDetailNumber) saleDetailNumber.value = sale.sale_number || ticket;
+      if (saleDetailStatus) {
+        const statusMap = {
+          completed: "Completado",
+          cancelled: "Cancelado",
+          pending: "Pendiente",
+          pending_inventory: "Pendiente por inventario",
+        };
+        saleDetailStatus.value = statusMap[sale.status] || sale.status || "N/A";
+      }
+
       if (saleDetailSource) {
-        const src = String(sale?.catalog_source_snapshot || "pos").trim().toLowerCase();
-        saleDetailSource.value = src === "stocks" ? "Stocks" : "POS";
+        const sourceMap = {
+          stocks: "Stocks",
+          pos: "POS"
+        };
+        saleDetailSource.value = sourceMap[sale.catalog_source_snapshot] || sale.catalog_source_snapshot || "N/A";
       }
 
       const itemsHtml = Array.isArray(sale?.items) && sale.items.length
         ? sale.items.map(item => {
-            const qty = Number(item?.quantity || 0).toFixed(2);
+            const qty = Number(item?.quantity || 0).toFixed(0);
             const name = escapeHtml(item?.product_name_snapshot || "Item");
             const kind = escapeHtml(item?.product_type_snapshot || "physical");
             return `<li>${name} — Cantidad: ${qty} — Tipo: ${kind}</li>`;
@@ -1133,112 +1113,136 @@ function setupSalesHistoryButton() {
 
       if (saleDetailSummary) {
         saleDetailSummary.innerHTML = `
-          <div style="display:grid; gap:0.75rem;">
-            <div><strong>Ticket:</strong> ${escapeHtml(sale?.sale_number || ticket)}</div>
-            <div><strong>Total:</strong> $${Number(sale?.total_amount || 0).toFixed(2)}</div>
-            <div><strong>Estado venta:</strong> ${escapeHtml(String(sale?.status || "completed"))}</div>
-            <div><strong>Cancelado por:</strong> ${escapeHtml(sale?.cancelled_by || "-")}</div>
-            <div><strong>Motivo cancelación:</strong> ${escapeHtml(sale?.cancellation_reason || "-")}</div>
-            <div>
-              <strong>Items:</strong>
-              <ul style="margin:0.35rem 0 0 1.25rem; padding:0;">
-                ${itemsHtml}
-              </ul>
-            </div>
+          <div><strong>Ticket:</strong> ${sale.sale_number}</div>
+          <div><strong>Total:</strong> $${Number(sale.total_amount || 0).toFixed(2)}</div>
+          <div><strong>Estado venta:</strong> ${sale.status}</div>
+          <div><strong>Cancelado por:</strong> ${escapeHtml(sale?.cancelled_by || "-")}</div>
+          <div><strong>Motivo cancelación:</strong> ${escapeHtml(sale?.cancellation_reason || "-")}</div>
+          <div>
+            <strong>Productos / Servicios:</strong>
+            <ul style="margin:0.35rem 0 0 1.25rem; padding:0;">
+              ${itemsHtml}
+            </ul>
           </div>
         `;
       }
 
-      if (saleCancelBtn) {
-        const isCancelled = String(sale?.status || "").trim().toLowerCase() === "cancelled";
-        saleCancelBtn.style.display = isCancelled ? "none" : "";
-        saleCancelBtn.disabled = false;
-        saleCancelBtn.dataset.saleId = String(sale?.id || "");
+      // 🔴 abrir submodal correctamente
+      const detailModal = document.getElementById("saleDetailModalBackdrop");
+      if (detailModal) {
+
+        // 🔴 mismo fix estructural
+        ensureModalInBody("saleDetailModalBackdrop");
+
+        // 🔴 cerrar otros subniveles
+        document.querySelectorAll(".rs-modal-backdrop.show").forEach(el => {
+          if (el !== detailModal) el.classList.remove("show");
+        });
+
+        detailModal.classList.add("show");
       }
 
-      if (saleCancelReason) saleCancelReason.value = "";
-
-      openModal("saleDetailModalBackdrop");
-    } catch (error) {
-      console.error("Error buscando ticket:", error);
-      alert(error?.message || "No se pudo consultar el ticket.");
+    } catch (e) {
+      alert("Error consultando ticket");
     }
   }
 
-  salesHistoryBtn.addEventListener("click", async () => {
-    if (posBlocked) {
-      alert(posBlockReason);
-      return;
+  
+
+  // 🔴 BOTÓN HISTORIAL (AQUÍ ESTÁ EL FIX REAL)
+  salesHistoryBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const modal = document.getElementById("salesOpsModalBackdrop");
+    if (!modal) return;
+
+    // 🔴 mover a body (clave)
+    ensureModalInBody("salesOpsModalBackdrop");
+
+    // 🔴 cerrar otros
+    document.querySelectorAll(".rs-modal-backdrop.show").forEach(el => {
+      el.classList.remove("show");
+    });
+
+    // 🔴 abrir (patrón correcto)
+    modal.classList.add("show");
+
+    // 🔴 TU LÓGICA ORIGINAL
+    if (salesOpsModalTitle) {
+      salesOpsModalTitle.textContent = "Historial / Cancelación";
     }
 
-    await openSalesOpsModal();
+    if (saleDetailModalTitle) {
+      saleDetailModalTitle.textContent = "Detalle de ticket";
+    }
+
+    if (salesOpsTicketInput) {
+      salesOpsTicketInput.value = "";
+    }
+
+    resetSaleDetail();
+    await loadRetryTable();
   });
 
   if (salesOpsSearchBtn) {
     salesOpsSearchBtn.addEventListener("click", searchTicketAndOpenDetail);
   }
 
-  if (salesOpsTicketInput) {
-    salesOpsTicketInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        searchTicketAndOpenDetail();
+  if (saleReprintBtn) {
+    console.log("saleReprintBtn SALE ID:", currentSaleId);
+    saleReprintBtn.addEventListener("click", async () => {
+      try {
+        if (!currentSaleId) {
+          alert("No hay venta seleccionada");
+          return;
+        }
+
+        await api.openSalePrintWindow(currentSaleId);
+
+      } catch (error) {
+        console.error("Error en reimpresión:", error);
+        alert(error.message || "No se pudo reimprimir");
       }
     });
   }
 
   if (saleCancelBtn) {
     saleCancelBtn.addEventListener("click", async () => {
-      const saleId = Number(saleCancelBtn.dataset.saleId || 0);
-      const ticket = String(saleDetailNumber?.value || "").trim();
-      const reason = String(saleCancelReason?.value || "").trim();
-
-      if (!saleId) {
-        alert("No hay venta cargada.");
-        return;
-      }
-
-      if (!ticket) {
-        alert("No hay ticket cargado.");
-        return;
-      }
-
-      if (!reason) {
-        alert("Capture el motivo de cancelación.");
-        return;
-      }
-
-      const confirmed = window.confirm(`¿Confirmas cancelar la venta ${ticket}?`);
-      if (!confirmed) return;
-
-      saleCancelBtn.disabled = true;
-
       try {
-        const { response, result } = await api.cancelSale(saleId, { reason });
-
-        if (!response.ok) {
-          throw new Error(result?.detail || "No se pudo cancelar la venta.");
+        if (!currentSaleId) {
+          alert("No hay venta seleccionada");
+          return;
         }
 
-        alert(`Venta ${ticket} cancelada correctamente.`);
+        const reason = String(saleCancelReason?.value || "").trim();
 
-        if (saleDetailStatus) saleDetailStatus.value = "Cancelado";
-        saleCancelBtn.style.display = "none";
+        if (!reason) {
+          alert("Debe capturar el motivo de cancelación");
+          return;
+        }
 
-        // Refresca el detalle real para ver motivo / usuario / estatus final
-        await searchTicketAndOpenDetail();
-        await loadRetryTable();
+        const confirmCancel = confirm("¿Confirmas cancelar la venta?");
+        if (!confirmCancel) return;
+
+        const { response, result } = await api.cancelSale(currentSaleId, {
+          reason
+        });
+
+        if (!response?.ok) {
+          throw new Error(result?.detail || "Error al cancelar la venta");
+        }
+
+        alert("Venta cancelada correctamente");
+
+        // refrescar UI
+        await loadData();
+        closeModal("saleDetailModalBackdrop");
+
       } catch (error) {
         console.error("Error cancelando venta:", error);
-        alert(error?.message || "No se pudo cancelar la venta.");
-        saleCancelBtn.disabled = false;
+        alert(error.message || "No se pudo cancelar la venta");
       }
-    });
-  }
-
-  if (saleReprintBtn) {
-    saleReprintBtn.addEventListener("click", () => {
-      alert("Reimpresión preparada en UI. Su funcionalidad se implementa en INV-5A.");
     });
   }
 }
@@ -1264,12 +1268,14 @@ function setupModalClosers() {
 
   document.querySelectorAll(".rs-modal-backdrop").forEach(backdrop => {
     backdrop.addEventListener("click", async (e) => {
+
       if (e.target !== backdrop) return;
 
-      if (backdrop.id === "salesOpsModalBackdrop") {
-        await closeSalesOpsModalAndRefresh();
-        return;
-      }
+      const isJustOpened = backdrop.dataset.justOpened === "true";
+      if (isJustOpened) return;
+
+      const hasActiveSubmodal = document.querySelector(".rs-modal-sublevel.show");
+      if (hasActiveSubmodal) return;
 
       backdrop.classList.remove("show");
     });
@@ -1284,6 +1290,15 @@ function setupModalClosers() {
   document.querySelectorAll("[data-close-sale-detail]").forEach(btn => {
     btn.addEventListener("click", () => closeModal("saleDetailModalBackdrop"));
   });
+}
+
+function ensureModalInBody(modalId) {
+  const modal = document.getElementById(modalId);
+  if (!modal) return;
+
+  if (modal.parentElement !== document.body) {
+    document.body.appendChild(modal);
+  }
 }
 
 /* =========================
@@ -1362,6 +1377,17 @@ async function initPos() {
   setupUserMenu();
   setupMenuActions();
   setupRefreshButton();
+  // 🔴 BUG P5 — refresh automático
+  setInterval(async () => {
+    try {
+      await loadData();
+      catalogModule.renderProducts();
+    } catch (e) {
+      console.warn("Auto refresh falló:", e);
+    }
+  }, 15000);
+
+
   setupAssignCustomerButton();
   setupCheckoutButton();
   setupSalesHistoryButton();

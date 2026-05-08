@@ -150,6 +150,7 @@ class PosClientSettings(Base):
     default_tax_percent = Column(Float, nullable=False, default=0.0)
     default_ticket_cfdi_use = Column(String(10), nullable=False, default="S01")
     default_ticket_tax_regime = Column(String(10), nullable=False, default="616")
+    default_customer_id = Column(Integer, nullable=True)
 
     sales_note_text_default = Column(Text, nullable=True)
     sales_note_extra_text = Column(Text, nullable=True)

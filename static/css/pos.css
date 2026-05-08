@@ -400,7 +400,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  z-index: 200;
+  z-index: 9999;
 }
 
 .rs-modal-backdrop.show {
@@ -1582,4 +1582,8 @@
   .cart-item-total {
     text-align: right;
   }
+}
+
+.rs-modal-sublevel {
+  z-index: 10001 !important;
 }
