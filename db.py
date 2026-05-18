@@ -58,11 +58,11 @@ def wait_for_db(engine_to_check, label: str):
         try:
             with engine_to_check.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            print(f"[DB:{label}] Conexión OK en intento {attempt}")
+            #print(f"[DB:{label}] Conexión OK en intento {attempt}")
             return
         except Exception as e:
             last_error = e
-            print(f"[DB:{label}] Intento {attempt}/{MAX_RETRIES} falló: {e}")
+            #print(f"[DB:{label}] Intento {attempt}/{MAX_RETRIES} falló: {e}")
             time.sleep(RETRY_DELAY)
 
     raise RuntimeError(f"No se pudo conectar a MySQL ({label}) tras {MAX_RETRIES} intentos: {last_error}")

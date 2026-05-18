@@ -1,4 +1,4 @@
-console.log("POS_API_INV3B_SEGMENTED");
+//console.log("POS_API_INV3B_SEGMENTED");
 
 export function createPosApi() {
   const NAV = window.RODELSOFT_NAV || {};

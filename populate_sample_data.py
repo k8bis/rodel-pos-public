@@ -63,12 +63,12 @@ def populate_sample_data():
 
         db.commit()
 
-        print("✅ Datos de ejemplo insertados correctamente!")
-        print(f"   - {len(categories)} categorías creadas")
-        print(f"   - {len(products_data)} productos creados")
+        #print("✅ Datos de ejemplo insertados correctamente!")
+        #print(f"   - {len(categories)} categorías creadas")
+        #print(f"   - {len(products_data)} productos creados")
 
     except Exception as e:
-        print(f"❌ Error insertando datos: {e}")
+        #print(f"❌ Error insertando datos: {e}")
         db.rollback()
     finally:
         db.close()

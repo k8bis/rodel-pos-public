@@ -40,7 +40,7 @@ def wait_engine(engine_to_check, label: str, retries: int = 20):
         try:
             with engine_to_check.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            print(f"[startup] DB {label} OK")
+            #print(f"[startup] DB {label} OK")
             return
         except Exception as e:
             if i == retries - 1:

@@ -489,7 +489,7 @@ def fetch_stock_item_by_id(
     client_id: int,
     item_id: int,
 ):
-    print(f"[DEBUG] Fetching stock item by id: {item_id} from {catalog_integration_url}")
+    #print(f"[DEBUG] Fetching stock item by id: {item_id} from {catalog_integration_url}")
     
     base_url = (
         catalog_integration_url.rstrip("/")
@@ -581,7 +581,7 @@ def fetch_stock_item_by_id(
             ),
         )
 
-    print(f"[DEBUG] Runtime stock item resolved: {runtime_item}")
+    #print(f"[DEBUG] Runtime stock item resolved: {runtime_item}")
 
     return runtime_item
 

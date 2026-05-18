@@ -1,4 +1,4 @@
-print("[POS] pos_routes_sales.py VERSION 2026-04-19-B")
+#print("[POS] pos_routes_sales.py VERSION 2026-04-19-B")
 
 from datetime import datetime
 from fastapi import APIRouter, Depends, Request, HTTPException, Header
@@ -215,16 +215,16 @@ def _create_sale_print_data_from_payload(
 
     document_type, template_name = _resolve_default_print_config(settings)
     
-    print(f"[POS][DEBUG] _create_sale_print_data_from_payload sale_id={sale.id} client_id={client_id}")
+    #print(f"[POS][DEBUG] _create_sale_print_data_from_payload sale_id={sale.id} client_id={client_id}")
 
-    print(f"[POS][DEBUG] settings_found={bool(settings)}")
-    if settings:
-        print(f"[POS][DEBUG] settings.client_id={settings.client_id}")
-        print(f"[POS][DEBUG] settings.print_document_type={settings.print_document_type}")
-        print(f"[POS][DEBUG] settings.ticket_template_name={settings.ticket_template_name}")
-        print(f"[POS][DEBUG] settings.sales_note_template_name={settings.sales_note_template_name}")
+    #print(f"[POS][DEBUG] settings_found={bool(settings)}")
+    #if settings:
+        #print(f"[POS][DEBUG] settings.client_id={settings.client_id}")
+        #print(f"[POS][DEBUG] settings.print_document_type={settings.print_document_type}")
+        #print(f"[POS][DEBUG] settings.ticket_template_name={settings.ticket_template_name}")
+        #print(f"[POS][DEBUG] settings.sales_note_template_name={settings.sales_note_template_name}")
 
-    print(f"[POS][DEBUG] resolved document_type={document_type} template_name={template_name}")
+    #print(f"[POS][DEBUG] resolved document_type={document_type} template_name={template_name}")
 
     default_ticket_cfdi_use = (
         (settings.default_ticket_cfdi_use or "").strip()
@@ -621,7 +621,7 @@ def create_sale(
             
             if pos_price.catalog_source == "stocks":
                 try:
-                    print(f"[POS][DEBUG] Fetching stock item for pos_price_id={pos_price.id} catalog_item_id={pos_price.catalog_item_id}")
+                    #print(f"[POS][DEBUG] Fetching stock item for pos_price_id={pos_price.id} catalog_item_id={pos_price.catalog_item_id}")
                     stock_item_payload = fetch_stock_item_by_id(
                         catalog_integration_url=(
                             current_catalog_integration_url
@@ -633,12 +633,12 @@ def create_sale(
                             pos_price.catalog_item_id
                         ),
                     )
-                    print(f"[POS][DEBUG] Stock item payload: {stock_item_payload}")
+                    #print(f"[POS][DEBUG] Stock item payload: {stock_item_payload}")
 
                     runtime_stock_item = stock_item_payload
 
                 except HTTPException as exc:
-                    print(f"[POS][DEBUG] ERROR fetching stock item: {exc.detail}")
+                    #print(f"[POS][DEBUG] ERROR fetching stock item: {exc.detail}")
                     runtime_stock_item = None
 
             if (
@@ -913,9 +913,9 @@ def create_sale(
         else:
             sale.status = "completed"
 
-        print(f"[POS][DEBUG]antes create_sale sale_id={sale.id} client_id={client_id} has_print_data={bool(data.print_data)}")
+        #print(f"[POS][DEBUG]antes create_sale sale_id={sale.id} client_id={client_id} has_print_data={bool(data.print_data)}")
         if data.print_data:
-            print(f"[POS][DEBUG]entra create_sale sale_id={sale.id} client_id={client_id} has_print_data={bool(data.print_data)}")
+            #print(f"[POS][DEBUG]entra create_sale sale_id={sale.id} client_id={client_id} has_print_data={bool(data.print_data)}")
             _create_sale_print_data_from_payload(
                 pos_db,
                 sale=sale,
@@ -978,7 +978,7 @@ def create_sale(
         raise
     except Exception as e:
         pos_db.rollback()
-        print(f"[POS] Error inesperado en create_sale: {e}")
+        #print(f"[POS] Error inesperado en create_sale: {e}")
         raise HTTPException(status_code=500, detail="Error interno al procesar la venta")
 
 @router.get("/api/sales/by-ticket/{sale_number}")
@@ -1413,12 +1413,12 @@ def cancel_sale(
             pos_db.commit()
         except Exception as log_exc:
             pos_db.rollback()
-            print(f"[POS] No se pudo registrar inventory_cancel_failed para sale_id={sale.id}: {log_exc}")
+            #print(f"[POS] No se pudo registrar inventory_cancel_failed para sale_id={sale.id}: {log_exc}")
 
         raise
 
     except Exception as e:
-        print(f"[POS] Error inesperado en cancel_sale: {e}")
+        #print(f"[POS] Error inesperado en cancel_sale: {e}")
         pos_db.rollback()
         raise HTTPException(status_code=500, detail="Error interno al cancelar la venta")
 
@@ -1588,14 +1588,14 @@ def upsert_sale_print_data(
     # SIEMPRE usar snapshot de settings al momento de guardar
     document_type, template_name = _resolve_default_print_config(settings)
     
-    print(f"[POS][DEBUG] upsert_sale_print_data sale_id={sale_id} client_id={client_id}")
-    print(f"[POS][DEBUG] payload.document_type={payload.document_type}")
-    print(f"[POS][DEBUG] payload.template_name={payload.template_name}")
-    if settings:
-        print(f"[POS][DEBUG] settings.print_document_type={settings.print_document_type}")
-        print(f"[POS][DEBUG] settings.ticket_template_name={settings.ticket_template_name}")
-        print(f"[POS][DEBUG] settings.sales_note_template_name={settings.sales_note_template_name}")
-    print(f"[POS][DEBUG] resolved document_type={document_type} template_name={template_name}")
+    #print(f"[POS][DEBUG] upsert_sale_print_data sale_id={sale_id} client_id={client_id}")
+    #print(f"[POS][DEBUG] payload.document_type={payload.document_type}")
+    #print(f"[POS][DEBUG] payload.template_name={payload.template_name}")
+    #if settings:
+        #print(f"[POS][DEBUG] settings.print_document_type={settings.print_document_type}")
+        #print(f"[POS][DEBUG] settings.ticket_template_name={settings.ticket_template_name}")
+        #print(f"[POS][DEBUG] settings.sales_note_template_name={settings.sales_note_template_name}")
+    #print(f"[POS][DEBUG] resolved document_type={document_type} template_name={template_name}")
     
     
 

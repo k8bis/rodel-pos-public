@@ -1,5 +1,5 @@
 // pos_cart.js
-console.log("POS_CART_INV3B_SEGMENTED");
+//console.log("POS_CART_INV3B_SEGMENTED");
 
 export function createPosCart(deps) {
   const {

@@ -1,5 +1,5 @@
 // pos_catalog.js
-console.log("POS_CATALOG_INV3B_SEGMENTED");
+//console.log("POS_CATALOG_INV3B_SEGMENTED");
 
 export function createPosCatalog(deps) {
   let activeCategoryId = "all";

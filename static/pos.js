@@ -4,7 +4,7 @@ import { createPosCatalog } from "./pos_catalog.js";
 import { createPosMaintenance } from "./pos_maintenance.js";
 import { createPosPrices } from "./pos_prices.js";
 
-console.log("POS_JS_INV3B1_SECURITY_FINAL_V2");
+//console.log("POS_JS_INV3B1_SECURITY_FINAL_V2");
 
 const api = createPosApi();
 
@@ -1190,7 +1190,7 @@ function setupSalesHistoryButton() {
   }
 
   if (saleReprintBtn) {
-    console.log("saleReprintBtn SALE ID:", currentSaleId);
+    //console.log("saleReprintBtn SALE ID:", currentSaleId);
     saleReprintBtn.addEventListener("click", async () => {
       try {
         if (!currentSaleId) {
