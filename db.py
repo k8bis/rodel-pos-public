@@ -12,6 +12,8 @@ from sqlalchemy import (
     Boolean,
     Text,
     JSON,
+    UniqueConstraint,
+    Index,
 )
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from sqlalchemy.sql import func
@@ -89,16 +91,70 @@ class Category(Base):
     __tablename__ = "pos_categories"
 
     id = Column(Integer, primary_key=True, index=True)
-    client_id = Column(Integer, nullable=False, default=1, index=True)
+    client_id = Column(Integer, nullable=False, default=1)
+
+    parent_id = Column(
+        Integer,
+        ForeignKey("pos_categories.id", ondelete="SET NULL"),
+        nullable=True
+    )
+
+    sort_order = Column(
+        Integer,
+        nullable=False,
+        default=0
+    )
+
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
-    color = Column(String(7), default="#0066FF")
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    color = Column(String(7), nullable=False, default="#0066FF")
+    is_active = Column(Boolean, nullable=False, default=True)
 
-    products = relationship("Product", back_populates="category")
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(
+        DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
 
+    parent = relationship(
+        "Category",
+        remote_side=[id],
+        backref="children",
+        passive_deletes=True
+    )
+    
+    products = relationship(
+        "Product",
+        back_populates="category"
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "client_id",
+            "name",
+            name="uq_pos_categories_client_name"
+        ),
+        Index(
+            "idx_pos_categories_client",
+            "client_id"
+        ),
+        Index(
+            "idx_pos_categories_client_active",
+            "client_id",
+            "is_active"
+        ),
+        Index(
+            "idx_pos_categories_parent",
+            "parent_id"
+        ),
+        Index(
+            "idx_pos_categories_client_parent",
+            "client_id",
+            "parent_id"
+        ),
+    )
 
 class Product(Base):
     __tablename__ = "pos_products"
@@ -264,6 +320,8 @@ class SaleItem(Base):
     product_name_snapshot = Column(String(200), nullable=False)
     sku_snapshot = Column(String(50), nullable=True)
     category_name_snapshot = Column(String(150), nullable=True)
+    category_path_snapshot = Column(String(500), nullable=True)
+    
     product_type_snapshot = Column(String(20), nullable=False, default="physical")
     inventory_mode_snapshot = Column(String(20), nullable=False, default="pos_legacy")
     stock_item_id_snapshot = Column(Integer, nullable=True)

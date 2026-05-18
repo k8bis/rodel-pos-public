@@ -8,15 +8,23 @@ class CategoryCreate(BaseModel):
     description: Optional[str] = None
     color: str = "#0066FF"
 
+    parent_id: Optional[int] = None
+    sort_order: int = 0
+    
 
 class CategoryResponse(BaseModel):
     id: int
     client_id: int
+
     name: str
     description: Optional[str]
     color: str
-    is_active: bool
 
+    parent_id: Optional[int]
+    sort_order: int
+
+    is_active: bool
+    
 
 class ProductCreate(BaseModel):
     name: str
@@ -198,6 +206,7 @@ class SaleItemResponse(BaseModel):
     catalog_item_id_snapshot: int
     sku_snapshot: Optional[str] = None
     category_name_snapshot: Optional[str] = None
+    category_path_snapshot: Optional[str] = None
     product_type_snapshot: Optional[str] = None
     inventory_mode_snapshot: Optional[str] = None
     stock_item_id_snapshot: Optional[int] = None

@@ -29,6 +29,8 @@ from pos_helpers import (
     normalize_inventory_mode,
     sync_pos_price_snapshot_for_product,
     resolve_outbound_authorization,
+    build_category_path,
+    validate_category_parent,
 )
 
 router = APIRouter()
@@ -129,7 +131,13 @@ def _build_maintenance_products_response(pos_db: Session, client_id: int):
             )
             .all()
         )
-        categories_map = {c.id: c.name for c in categories}
+        categories_map = {
+            c.id: {
+                "name": c.name,
+                "path": build_category_path(c),
+            }
+            for c in categories
+        }
 
     prices = (
         pos_db.query(PosPrice)
@@ -162,7 +170,17 @@ def _build_maintenance_products_response(pos_db: Session, client_id: int):
             "sku": product.sku,
             "barcode": product.barcode,
             "category_id": product.category_id,
-            "category_name": categories_map.get(product.category_id),
+            "category_name": (
+                categories_map.get(product.category_id, {}).get("name")
+                if product.category_id
+                else None
+            ),
+
+            "category_path": (
+                categories_map.get(product.category_id, {}).get("path")
+                if product.category_id
+                else None
+            ),
             "stock_quantity": int(product.stock_quantity or 0),
             "min_stock": int(product.min_stock or 0),
             # bandera comercial efectiva visible
@@ -207,10 +225,18 @@ def get_categories(
             {
                 "id": category.id,
                 "client_id": category.client_id,
+
                 "name": category.name,
                 "description": category.description,
                 "color": category.color or "#6B7280",
+
+                "parent_id": category.parent_id,
+                "sort_order": int(category.sort_order or 0),
+
+                "category_path": build_category_path(category),
+
                 "is_active": bool(category.is_active),
+
                 "created_at": getattr(category, "created_at", None),
                 "updated_at": getattr(category, "updated_at", None),
             }
@@ -232,10 +258,18 @@ def get_categories(
         {
             "id": item["id"],
             "client_id": item.get("client_id", client_id),
+
             "name": item["name"],
             "description": item.get("description"),
             "color": item.get("color") or "#6B7280",
+
+            # 9D.3A contract normalization
+            # Stocks todavía no implementa jerarquía
+            "parent_id": item.get("parent_id"),
+            "sort_order": int(item.get("sort_order") or 0),
+
             "is_active": bool(item.get("is_active", True)),
+
             "created_at": item.get("created_at"),
             "updated_at": item.get("updated_at"),
         }
@@ -259,13 +293,25 @@ def create_category(
         raise HTTPException(status_code=400, detail="Faltan app_id o client_id")
 
     _require_catalog_write_access(request, user, app_id, client_id, authorization)
+    
+    validate_category_parent(
+        pos_db=pos_db,
+        client_id=client_id,
+        category_id=None,
+        parent_id=data.parent_id,
+    )
 
     category = Category(
         client_id=client_id,
+
         name=data.name,
         description=data.description,
         color=data.color,
+
+        parent_id=data.parent_id,
+        sort_order=int(data.sort_order or 0),
     )
+    
     pos_db.add(category)
     pos_db.commit()
     pos_db.refresh(category)
@@ -300,10 +346,20 @@ def update_category(
     )
     if not category:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
+    
+    validate_category_parent(
+        pos_db=pos_db,
+        client_id=client_id,
+        category_id=category.id,
+        parent_id=data.parent_id,
+    )
 
     category.name = data.name
     category.description = data.description
     category.color = data.color
+
+    category.parent_id = data.parent_id
+    category.sort_order = int(data.sort_order or 0)
 
     related_products = (
         pos_db.query(Product)
@@ -378,7 +434,13 @@ def get_products(
                     )
                     .all()
                 )
-                categories_map = {c.id: c.name for c in categories}
+                categories_map = {
+                    c.id: {
+                        "name": c.name,
+                        "path": build_category_path(c),
+                    }
+                    for c in categories
+                }
 
         result = []
         for price in prices:
@@ -401,7 +463,17 @@ def get_products(
                 "sku": product.sku,
                 "barcode": product.barcode,
                 "category_id": product.category_id,
-                "category_name": categories_map.get(product.category_id),
+                "category_name": (
+                    categories_map.get(product.category_id, {}).get("name")
+                    if product.category_id
+                    else None
+                ),
+
+                "category_path": (
+                    categories_map.get(product.category_id, {}).get("path")
+                    if product.category_id
+                    else None
+                ),
                 # SOLO si catalog_source = pos, el frontend leerá stock_quantity local
                 "stock_quantity": int(product.stock_quantity or 0),
                 "min_stock": int(product.min_stock or 0),

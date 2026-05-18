@@ -118,6 +118,7 @@ export function createPosMaintenance({
     categoryEditor.name = document.getElementById("categoryName");
     categoryEditor.description = document.getElementById("categoryDescription");
     categoryEditor.color = document.getElementById("categoryColor");
+    categoryEditor.parentId = document.getElementById("categoryParentId");
     categoryEditor.submitBtn = document.getElementById("categorySubmitBtn");
 
     // Product list modal
@@ -524,12 +525,87 @@ export function createPosMaintenance({
     }
   }
   
+  function getCategoryDepth(category, categories = []) {
+    if (!category || !category.parent_id) {
+      return 0;
+    }
+
+    let depth = 0;
+    let currentParentId = category.parent_id;
+
+    while (currentParentId) {
+      const parent = categories.find(
+        (cat) => String(cat.id) === String(currentParentId)
+      );
+
+      if (!parent) {
+        break;
+      }
+
+      depth += 1;
+      currentParentId = parent.parent_id;
+    }
+
+    return depth;
+  }
+
+  function getIndentedCategoryLabel(category, categories = []) {
+    const depth = getCategoryDepth(category, categories);
+    //console.log("Category:", category.name, "Depth:", depth);
+    if (depth <= 0) {
+      return category.name || "";
+    }
+
+    return `${"·· ".repeat(depth)}${category.name || ""}`;
+  }
+
+  function getAvailableParentCategories(currentId = null) {
+    const currentIdText =
+      currentId != null
+        ? String(currentId)
+        : null;
+
+    const categories = getCategories();
+
+    return categories.filter(cat => {
+      if (!cat || cat.id == null) {
+        return false;
+      }
+
+      if (currentIdText && String(cat.id) === currentIdText) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  function populateParentCategorySelect(currentId = null, selectedParentId = null) {
+    if (!categoryEditor.parentId) return;
+
+    const categories = sortCategoriesTree(getCategories());
+
+    categoryEditor.parentId.innerHTML = `
+      <option value="">Sin categoría padre</option>
+      ${categories.map(cat => `
+        <option
+          value="${cat.id}"
+          ${String(selectedParentId || "") === String(cat.id) ? "selected" : ""}
+        >
+          ${escapeHtml(getIndentedCategoryLabel(cat, getCategories()))}
+        </option>
+      `).join("")}
+    `;
+  }
 
   function renderCategoryTable() {
     if (!categoryModal.listBody) return;
 
-    const categories = getCategories();
+    const categories = sortCategoriesTree(getCategories());
+
     const canEdit = canManageCatalogs();
+    const readonly = isReadonlyByRoleOrSource();
+    const actionLabel = readonly ? "Ver" : "Editar";
 
     if (!categories.length) {
       categoryModal.listBody.innerHTML = `
@@ -543,14 +619,14 @@ export function createPosMaintenance({
     categoryModal.listBody.innerHTML = categories.map(cat => `
       <tr>
         <td>${cat.id ?? ""}</td>
-        <td>${escapeHtml(cat.name || "")}</td>
+        <td>${escapeHtml(getIndentedCategoryLabel(cat, getCategories()))}</td>
         <td>${escapeHtml(cat.description || "")}</td>
         <td>
           <span class="color-chip" style="background:${escapeHtml(cat.color || "#2563eb")}"></span>
           ${escapeHtml(cat.color || "#2563eb")}
         </td>
         <td>
-          ${canEdit ? `<button class="secondary-btn" data-category-edit="${cat.id}">Editar</button>` : ""}
+          ${canEdit ? `<button class="secondary-btn" data-category-edit="${cat.id}">${actionLabel}</button>` : ""}
         </td>
       </tr>
     `).join("");
@@ -562,8 +638,61 @@ export function createPosMaintenance({
     }
   }
 
+  function sortCategoriesTree(categories = []) {
+    const byParent = new Map();
+
+    for (const category of categories) {
+      const parentKey =
+        category.parent_id != null
+          ? String(category.parent_id)
+          : "root";
+
+      if (!byParent.has(parentKey)) {
+        byParent.set(parentKey, []);
+      }
+
+      byParent.get(parentKey).push(category);
+    }
+
+    for (const items of byParent.values()) {
+      items.sort((a, b) => {
+        const orderA = Number(a.sort_order || 0);
+        const orderB = Number(b.sort_order || 0);
+
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+
+        return String(a.name || "")
+          .localeCompare(String(b.name || ""));
+      });
+    }
+
+    const result = [];
+
+    function appendChildren(parentId = null) {
+      const key =
+        parentId != null
+          ? String(parentId)
+          : "root";
+
+      const children = byParent.get(key) || [];
+
+      for (const child of children) {
+        result.push(child);
+        appendChildren(child.id);
+      }
+    }
+
+    appendChildren(null);
+
+    return result;
+  }
+
   function renderProductRow(prod) {
     const canEdit = canManageCatalogs();
+    const readonly = isReadonlyByRoleOrSource();
+    const actionLabel = readonly ? "Ver" : "Editar";
 
     return `
       <tr>
@@ -575,7 +704,7 @@ export function createPosMaintenance({
         <td>${prod.stock_quantity != null ? Number(prod.stock_quantity) : 0}</td>
         <td>${prod.is_active === true ? "Activo" : prod.is_active === false ? "Inactivo" : "-"}</td>
         <td>
-          ${canEdit ? `<button class="secondary-btn" data-product-edit="${prod.id}">Editar</button>` : ""}
+          ${canEdit ? `<button class="secondary-btn" data-product-edit="${prod.id}">${actionLabel}</button>` : ""}
         </td>
       </tr>
     `;
@@ -607,13 +736,15 @@ export function createPosMaintenance({
   function populateCategorySelect() {
     if (!productEditor.categoryId) return;
 
-    const categories = getCategories();
+    const categories = sortCategoriesTree(getCategories());
     const currentValue = productEditor.categoryId.value;
 
     productEditor.categoryId.innerHTML = `
       <option value="">Seleccione categoría...</option>
       ${categories.map(cat => `
-        <option value="${cat.id}">${escapeHtml(cat.name || "")}</option>
+        <option value="${cat.id}">
+          ${escapeHtml(getIndentedCategoryLabel(cat, getCategories()))}
+        </option>
       `).join("")}
     `;
 
@@ -678,6 +809,11 @@ export function createPosMaintenance({
   function resetCategoryForm() {
     editingCategoryId = null;
     if (categoryEditor.form) categoryEditor.form.reset();
+
+    if (categoryEditor.parentId) {
+      categoryEditor.parentId.value = "";
+    }
+
     if (categoryEditor.color && !categoryEditor.color.value) {
       categoryEditor.color.value = "#2563eb";
     }
@@ -702,7 +838,9 @@ export function createPosMaintenance({
     const readonly = isReadonlyByRoleOrSource();
     if (readonly) return;
 
-    resetCategoryForm();
+    resetCategoryForm(
+      populateParentCategorySelect(null, null)
+    );
 
     if (categoryEditor.title) {
       categoryEditor.title.textContent = "Nueva categoría";
@@ -737,6 +875,11 @@ export function createPosMaintenance({
     if (categoryEditor.description) categoryEditor.description.value = category.description || "";
     if (categoryEditor.color) categoryEditor.color.value = category.color || "#2563eb";
 
+    populateParentCategorySelect(
+      category.id,
+      category.parent_id ?? null
+    );
+
     setReadonlyForFormFields(categoryEditor.form, readonly);
     setButtonVisibility(categoryEditor.submitBtn, !readonly);
 
@@ -758,6 +901,10 @@ export function createPosMaintenance({
     }
 
     setReadonlyForFormFields(productEditor.form, readonly);
+    if (productEditor.inventoryMode) {
+      productEditor.inventoryMode.disabled = true;
+    }
+
     setButtonVisibility(productEditor.submitBtn, !readonly);
 
     syncProductInventoryUi();
@@ -795,6 +942,10 @@ export function createPosMaintenance({
     if (productEditor.stockItemId) productEditor.stockItemId.value = product.stock_item_id ?? "";
 
     setReadonlyForFormFields(productEditor.form, readonly);
+    if (productEditor.inventoryMode) {
+      productEditor.inventoryMode.disabled = true;
+    }
+
     setButtonVisibility(productEditor.submitBtn, !readonly);
 
     syncProductInventoryUi();
@@ -810,7 +961,14 @@ export function createPosMaintenance({
     const payload = {
       name: categoryEditor.name?.value?.trim() || "",
       description: categoryEditor.description?.value?.trim() || "",
-      color: categoryEditor.color?.value || "#2563eb"
+      color: categoryEditor.color?.value || "#2563eb",
+
+      parent_id:
+        categoryEditor.parentId?.value
+          ? Number(categoryEditor.parentId.value)
+          : null,
+
+      sort_order: 0
     };
 
     if (!payload.name) {
@@ -951,8 +1109,9 @@ export function createPosMaintenance({
         }
 
         const filtered = categories.filter(cat =>
-          String(cat.name || "").toLowerCase().includes(term) ||
-          String(cat.description || "").toLowerCase().includes(term)
+          String(cat.category_path || cat.name || "")
+            .toLowerCase()
+            .includes(term) 
         );
 
         if (!filtered.length) {
@@ -967,7 +1126,7 @@ export function createPosMaintenance({
         categoryModal.listBody.innerHTML = filtered.map(cat => `
           <tr>
             <td>${cat.id ?? ""}</td>
-            <td>${escapeHtml(cat.name || "")}</td>
+            <td>${escapeHtml(getIndentedCategoryLabel(cat, getCategories()))}</td>
             <td>${escapeHtml(cat.description || "")}</td>
             <td>
               <span class="color-chip" style="background:${escapeHtml(cat.color || "#2563eb")}"></span>

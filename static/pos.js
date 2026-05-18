@@ -1377,14 +1377,32 @@ async function initPos() {
   setupUserMenu();
   setupMenuActions();
   setupRefreshButton();
+  
   // 🔴 BUG P5 — refresh automático
   setInterval(async () => {
+
     try {
+
+      // NO refrescar si hay modales abiertos
+      const openModal = document.querySelector(".rs-modal-backdrop.show");
+
+      if (openModal) {
+        return;
+      }
+
       await loadData();
-      catalogModule.renderProducts();
+
+      if (
+        catalogModule &&
+        typeof catalogModule.restoreCatalogState === "function"
+      ) {
+        catalogModule.restoreCatalogState();
+      }
+
     } catch (e) {
       console.warn("Auto refresh falló:", e);
     }
+
   }, 15000);
 
 

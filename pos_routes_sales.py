@@ -35,6 +35,8 @@ from pos_helpers import (
     post_stocks_sale_cancel,
     require_pos_admin_for_sales_ops,
     resolve_outbound_authorization,
+    build_category_path,
+    fetch_stock_item_by_id,
 )
 
 router = APIRouter()
@@ -373,6 +375,7 @@ def _build_sale_item_response(item: SaleItem) -> dict:
         "catalog_item_id_snapshot": item.catalog_item_id_snapshot,
         "sku_snapshot": item.sku_snapshot,
         "category_name_snapshot": item.category_name_snapshot,
+        "category_path_snapshot": item.category_path_snapshot,
         "product_type_snapshot": item.product_type_snapshot,
         "inventory_mode_snapshot": item.inventory_mode_snapshot,
         "stock_item_id_snapshot": item.stock_item_id_snapshot,
@@ -410,9 +413,18 @@ def apply_local_sale_cancel(
         if not bool(product.track_inventory):
             continue
 
-        if (product.inventory_mode or "pos_legacy").strip().lower() != "pos_legacy":
-            continue
-
+        # 5A Runtime Ownership Canonicalization:
+        # catalog_source_snapshot define el ownership/runtime aplicado
+        # durante la venta/cancelación.
+        #
+        # inventory_mode queda únicamente como snapshot histórico/documental
+        # y NO como switch operativo.
+        #
+        # Si catalog_source_snapshot=pos:
+        # POS administra inventario local autónomo.
+        #
+        # Si catalog_source_snapshot=stocks:
+        # la reversión se procesa vía Stocks API y NO localmente.
         product.stock_quantity = int(product.stock_quantity or 0) + int(sale_item.quantity or 0)
 
 
@@ -520,14 +532,19 @@ def create_sale(
 
                 if product:
                     if (product.product_type or "physical") == "physical" and bool(product.track_inventory):
-                        if (product.inventory_mode or "pos_legacy") == "pos_legacy":
-                            available = int(product.stock_quantity or 0)
-                            requested = int(item["quantity"])
-                            if available < requested:
-                                raise HTTPException(
-                                    status_code=400,
-                                    detail=f"Stock insuficiente para {product.name}. Disponible: {available}",
-                                )
+                        # 5A Runtime Ownership Canonicalization:
+                        # current_catalog_source=pos implica inventario local POS.
+                        #
+                        # inventory_mode se conserva únicamente como snapshot
+                        # histórico/documental y NO participa en runtime.
+                        available = int(product.stock_quantity or 0)
+                        requested = int(item["quantity"])
+
+                        if available < requested:
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"Stock insuficiente para {product.name}. Disponible: {available}",
+                            )
 
         sale = Sale(
             sale_number=build_sale_number(),
@@ -595,24 +612,64 @@ def create_sale(
         )
 
         for item in sale_items:
+            resolved_category_path = None
             pos_price = item["pos_price"]
 
-            if current_catalog_source == "pos":
-                if pos_price.catalog_source == "pos":
-                    product = (
-                        pos_db.query(Product)
-                        .filter(
-                            Product.id == pos_price.catalog_item_id,
-                            Product.client_id == client_id,
-                            Product.is_active == True,
-                        )
-                        .first()
+            product = None
+                        
+            runtime_stock_item = None
+            
+            if pos_price.catalog_source == "stocks":
+                try:
+                    print(f"[POS][DEBUG] Fetching stock item for pos_price_id={pos_price.id} catalog_item_id={pos_price.catalog_item_id}")
+                    stock_item_payload = fetch_stock_item_by_id(
+                        catalog_integration_url=(
+                            current_catalog_integration_url
+                        ),
+                        authorization=outbound_authorization,
+                        app_id=app_id,
+                        client_id=client_id,
+                        item_id=(
+                            pos_price.catalog_item_id
+                        ),
                     )
+                    print(f"[POS][DEBUG] Stock item payload: {stock_item_payload}")
 
-                    if product:
-                        if (product.product_type or "physical") == "physical" and bool(product.track_inventory):
-                            if (product.inventory_mode or "pos_legacy") == "pos_legacy":
-                                product.stock_quantity = int(product.stock_quantity or 0) - int(item["quantity"])
+                    runtime_stock_item = stock_item_payload
+
+                except HTTPException as exc:
+                    print(f"[POS][DEBUG] ERROR fetching stock item: {exc.detail}")
+                    runtime_stock_item = None
+
+            if (
+                current_catalog_source == "pos"
+                and pos_price.catalog_source == "pos"
+            ):
+                product = (
+                    pos_db.query(Product)
+                    .filter(
+                        Product.id == pos_price.catalog_item_id,
+                        Product.client_id == client_id,
+                        Product.is_active == True,
+                    )
+                    .first()
+                )
+
+            resolved_category_path = None
+
+            if product and product.category:
+                resolved_category_path = build_category_path(product.category)
+
+            if current_catalog_source == "pos":
+                if product:
+                    if (
+                        (product.product_type or "physical") == "physical"
+                        and bool(product.track_inventory)
+                    ):
+                        product.stock_quantity = (
+                            int(product.stock_quantity or 0)
+                            - int(item["quantity"])
+                        )
 
             sale_item = SaleItem(
                 sale_id=sale.id,
@@ -621,18 +678,45 @@ def create_sale(
                 catalog_item_id=pos_price.catalog_item_id,
                 catalog_source_snapshot=pos_price.catalog_source,
                 catalog_item_id_snapshot=pos_price.catalog_item_id,
-                product_name_snapshot=pos_price.display_name_snapshot,
-                sku_snapshot=pos_price.sku_snapshot,
-                category_name_snapshot=pos_price.category_name_snapshot,
-                product_type_snapshot=pos_price.product_type_snapshot,
+
+                product_name_snapshot=(
+                    runtime_stock_item.get("name")
+                    if runtime_stock_item
+                    else pos_price.display_name_snapshot
+                ),
+
+                sku_snapshot=(
+                    runtime_stock_item.get("sku")
+                    if runtime_stock_item
+                    else pos_price.sku_snapshot
+                ),
+
+                category_name_snapshot=(
+                    runtime_stock_item.get("category_name")
+                    if runtime_stock_item
+                    else pos_price.category_name_snapshot
+                ),
+
+                category_path_snapshot=(
+                    runtime_stock_item.get("category_path")
+                    if runtime_stock_item
+                    else resolved_category_path
+                ),
+
+                product_type_snapshot=(
+                    runtime_stock_item.get("item_type")
+                    if runtime_stock_item
+                    else pos_price.product_type_snapshot
+                ),
+
                 inventory_mode_snapshot=pos_price.inventory_mode_snapshot,
                 stock_item_id_snapshot=pos_price.stock_item_id_snapshot,
                 quantity=item["quantity"],
-                unit_price_snapshot=item["unit_price"],          # precio unitario vendido (con IVA)
-                line_total_snapshot=item["line_subtotal"],       # subtotal de línea SIN IVA
-                unit_price=item["unit_price"],                   # precio unitario vendido (con IVA)
+                unit_price_snapshot=item["unit_price"],
+                line_total_snapshot=item["line_subtotal"],
+                unit_price=item["unit_price"],
                 tax_percent=item["tax_percent"],
-                total_price=item["total_price"],                 # total de línea CON IVA
+                total_price=item["total_price"],
             )
             pos_db.add(sale_item)
             pos_db.flush()

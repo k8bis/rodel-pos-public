@@ -2,6 +2,8 @@
 console.log("POS_CATALOG_INV3B_SEGMENTED");
 
 export function createPosCatalog(deps) {
+  let activeCategoryId = "all";
+  let activeSearchTerm = "";
   const {
     getCategories,
     getProducts,
@@ -26,6 +28,82 @@ export function createPosCatalog(deps) {
       .replaceAll("'", "&#039;");
   }
 
+  function getCategoryDepth(category, categoriesMap) {
+    let depth = 0;
+
+    let currentParentId = category.parent_id;
+
+    while (currentParentId != null) {
+      const parent = categoriesMap.get(currentParentId);
+
+      if (!parent) {
+        break;
+      }
+
+      depth += 1;
+      currentParentId = parent.parent_id;
+
+      // safety anti-loop
+      if (depth > 20) {
+        break;
+      }
+    }
+
+    return depth;
+  }
+
+  function buildCategoryChildrenMap(categories) {
+    const map = new Map();
+
+    categories.forEach(category => {
+      const parentId =
+        category.parent_id != null
+          ? Number(category.parent_id)
+          : null;
+
+      if (!map.has(parentId)) {
+        map.set(parentId, []);
+      }
+
+      map.get(parentId).push(category);
+    });
+
+    return map;
+  }
+
+  function collectDescendantCategoryIds(
+    categoryId,
+    childrenMap,
+    result = new Set()
+  ) {
+    result.add(Number(categoryId));
+
+    const children =
+      childrenMap.get(Number(categoryId)) || [];
+
+    children.forEach(child => {
+      collectDescendantCategoryIds(
+        child.id,
+        childrenMap,
+        result
+      );
+    });
+
+    return result;
+  }
+
+  function getIndentedCategoryLabel(
+    category,
+    categoriesMap
+  ) {
+    const depth = getCategoryDepth(
+      category,
+      categoriesMap
+    );
+
+    return `${"— ".repeat(depth)}${category.name || ""}`;
+  }
+
   function renderCategories() {
     const categories = getCategories();
     const container = document.getElementById("categoriesContainer");
@@ -40,14 +118,50 @@ export function createPosCatalog(deps) {
     allBtn.addEventListener("click", () => filterByCategory("all", allBtn));
     container.appendChild(allBtn);
 
-    categories.forEach(category => {
+const categoriesMap = new Map(
+  categories.map(cat => [
+    Number(cat.id),
+    cat
+  ])
+);
+
+const childrenMap =
+  buildCategoryChildrenMap(categories);
+
+function renderBranch(parentId = null) {
+  const branch =
+    [...(childrenMap.get(parentId) || [])]
+      .sort((a, b) => {
+        const sortA = Number(a.sort_order || 0);
+        const sortB = Number(b.sort_order || 0);
+
+        if (sortA !== sortB) {
+          return sortA - sortB;
+        }
+
+        return String(a.name || "")
+          .localeCompare(
+            String(b.name || "")
+          );
+      });
+
+  branch.forEach(category => {
       const btn = document.createElement("button");
       btn.className = "category-btn";
-      btn.textContent = category.name;
+      btn.textContent =
+      getIndentedCategoryLabel(
+        category,
+        categoriesMap
+      );
       btn.dataset.category = category.id;
       btn.addEventListener("click", () => filterByCategory(category.id, btn));
       container.appendChild(btn);
-    });
+
+        renderBranch(category.id);
+      });
+    }
+
+    renderBranch(null);
   }
 
   function renderProducts(filteredProducts = null) {
@@ -169,10 +283,13 @@ export function createPosCatalog(deps) {
   }
 
   function filterByCategory(categoryId, clickedBtn = null) {
+    activeCategoryId = categoryId;
     const categories = getCategories();
     const products = getProducts();
 
-    document.querySelectorAll(".category-btn").forEach(btn => btn.classList.remove("active"));
+    document.querySelectorAll(".category-btn").forEach(btn => {
+      btn.classList.remove("active");
+    });
 
     if (clickedBtn) {
       clickedBtn.classList.add("active");
@@ -183,22 +300,35 @@ export function createPosCatalog(deps) {
       return;
     }
 
-    const selectedCategory = categories.find(c => String(c.id) === String(categoryId));
-    const selectedName = selectedCategory?.name || "";
+  const selectedCategory = categories.find(
+      c => String(c.id) === String(categoryId)
+    );
 
-    const filtered = products.filter(p => {
-      if (p.category_id != null && String(p.category_id) === String(categoryId)) {
-        return true;
+    if (!selectedCategory) {
+      renderProducts(products);
+      return;
+    }
+
+    const childrenMap =
+      buildCategoryChildrenMap(
+        categories
+      );
+
+    const descendantIds =
+      [...collectDescendantCategoryIds(
+        categoryId,
+        childrenMap
+      )]
+      .map(id => String(id));
+
+    const filtered = products.filter(product => {
+      if (product.category_id == null) {
+        return false;
       }
 
-      if (
-        selectedName &&
-        String(getProductCategoryName(p)).trim().toLowerCase() === selectedName.trim().toLowerCase()
-      ) {
-        return true;
-      }
-
-      return false;
+      return descendantIds.includes(
+        String(product.category_id)
+      );
     });
 
     renderProducts(filtered);
@@ -211,6 +341,7 @@ export function createPosCatalog(deps) {
     searchInput.addEventListener("input", function (e) {
       const products = getProducts();
       const searchTerm = e.target.value.toLowerCase().trim();
+      activeSearchTerm = searchTerm;
 
       if (!searchTerm) {
         renderProducts(products);
@@ -239,11 +370,65 @@ export function createPosCatalog(deps) {
     `;
   }
 
+  function restoreCatalogState() {
+
+    const products = getProducts();
+
+    let rows = [...products];
+
+    // búsqueda persistente
+    if (activeSearchTerm) {
+      rows = rows.filter(p =>
+        String(p.name || "").toLowerCase().includes(activeSearchTerm) ||
+        String(p.sku || "").toLowerCase().includes(activeSearchTerm) ||
+        String(getProductCategoryName(p) || "").toLowerCase().includes(activeSearchTerm)
+      );
+    }
+
+    // categoría persistente
+    if (activeCategoryId !== "all") {
+
+      const categories = getCategories();
+
+      const childrenMap =
+        buildCategoryChildrenMap(categories);
+
+      const descendantIds =
+        [...collectDescendantCategoryIds(
+          activeCategoryId,
+          childrenMap
+        )]
+        .map(id => String(id));
+
+      rows = rows.filter(product => {
+        if (product.category_id == null) {
+          return false;
+        }
+
+        return descendantIds.includes(
+          String(product.category_id)
+        );
+      });
+    }
+
+    renderProducts(rows);
+
+    // restaurar botón activo
+    document.querySelectorAll(".category-btn").forEach(btn => {
+      btn.classList.remove("active");
+
+      if (String(btn.dataset.category) === String(activeCategoryId)) {
+        btn.classList.add("active");
+      }
+    });
+  }
+  
   return {
     renderCategories,
     renderProducts,
     filterByCategory,
     setupSearch,
-    showCatalogLoadError
+    showCatalogLoadError,
+    restoreCatalogState
   };
 }

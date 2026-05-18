@@ -30,7 +30,76 @@ APP_MENU_URL = os.getenv("APP_MENU_URL", "/")
 LOGOUT_URL = os.getenv("LOGOUT_URL", f"{APP_BASE_PATH}/logout")
 LOGIN_FALLBACK_URL = os.getenv("LOGIN_FALLBACK_URL", "/")
 SESSION_CHECK_URL = os.getenv("SESSION_CHECK_URL", f"{APP_BASE_PATH}/session-check")
+INTERNAL_SHARED_SECRET = (os.getenv("INTERNAL_SHARED_SECRET", "").strip())
 
+def build_contract_error_response(
+    *,
+    error_code: str,
+    detail: str,
+    status_code: int = 400,
+    upstream: str | None = None,
+    context: dict | None = None,
+):
+    payload = {
+        "ok": False,
+        "error_code": error_code,
+        "detail": detail,
+    }
+
+    if upstream:
+        payload["upstream"] = upstream
+
+    if context:
+        payload["context"] = context
+
+    return {
+        "status_code": status_code,
+        "payload": payload,
+    }
+
+def raise_upstream_contract_error(
+    *,
+    response,
+    upstream: str,
+    default_detail: str,
+    status_code: int = 502,
+):
+    body = None
+
+    try:
+        body = response.json()
+    except Exception:
+        body = None
+
+    if isinstance(body, dict):
+
+        if (
+            body.get("ok") is False
+            and body.get("error_code")
+        ):
+            raise HTTPException(
+                status_code=status_code,
+                detail=body,
+            )
+
+        detail = (
+            body.get("detail")
+            or body.get("message")
+            or default_detail
+        )
+
+    else:
+        detail = default_detail
+
+    raise HTTPException(
+        status_code=status_code,
+        detail=build_contract_error_response(
+            error_code="UPSTREAM_REQUEST_FAILED",
+            detail=detail,
+            status_code=status_code,
+            upstream=upstream,
+        )["payload"],
+    )
 
 def get_user_or_redirect(
     request: Request,
@@ -62,6 +131,37 @@ def build_logout_response() -> RedirectResponse:
     response.headers["Expires"] = "0"
     return response
 
+def build_category_path(category):
+    """
+    Construye path jerárquico textual congelado.
+
+    Ejemplo:
+    Electronica > Estereos > Autoestereos
+    """
+
+    if not category:
+        return None
+
+    visited = set()
+    parts = []
+
+    current = category
+
+    while current:
+        if current.id in visited:
+            break
+
+        visited.add(current.id)
+
+        if current.name:
+            parts.append(current.name.strip())
+
+        current = getattr(current, "parent", None)
+
+    parts.reverse()
+
+    return " > ".join(parts)
+
 
 def normalize_product_type(value: str | None) -> str:
     allowed = {"physical", "service"}
@@ -73,6 +173,69 @@ def normalize_product_type(value: str | None) -> str:
         )
     return normalized
 
+def validate_category_parent(
+    *,
+    pos_db,
+    client_id: int,
+    category_id: int | None,
+    parent_id: int | None,
+):
+    """
+    Reglas oficiales:
+
+    - parent_id puede ser NULL
+    - parent debe existir
+    - parent debe pertenecer al mismo client_id
+    - no puede apuntarse a sí misma
+    - no puede generar loops recursivos
+    """
+
+    if parent_id is None:
+        return None
+
+    parent = (
+        pos_db.query(Category)
+        .filter(
+            Category.id == parent_id,
+            Category.client_id == client_id,
+            Category.is_active == True,
+        )
+        .first()
+    )
+
+    if not parent:
+        raise HTTPException(
+            status_code=400,
+            detail="parent_id inválido para este cliente",
+        )
+
+    if category_id is not None:
+        if int(parent_id) == int(category_id):
+            raise HTTPException(
+                status_code=400,
+                detail="Una categoría no puede ser padre de sí misma",
+            )
+
+        visited = set()
+
+        current = parent
+
+        while current:
+
+            if current.id in visited:
+                break
+
+            visited.add(current.id)
+
+            if int(current.id) == int(category_id):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Loop jerárquico detectado",
+                )
+
+            current = current.parent
+
+    return parent
 
 def normalize_inventory_mode(value: str | None) -> str:
     allowed = {"pos_legacy", "stocks_api", "none"}
@@ -101,6 +264,39 @@ def build_auth_headers(
     if authorization:
         headers["Authorization"] = authorization
     return headers
+
+def validate_internal_request(
+    x_internal_request: str | None,
+    x_internal_secret: str | None,
+):
+    internal_flag = str(
+        x_internal_request or ""
+    ).strip().lower()
+
+    provided_secret = str(
+        x_internal_secret or ""
+    ).strip()
+
+    if internal_flag != "true":
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Internal endpoint "
+                "requires internal request"
+            ),
+        )
+
+    if not INTERNAL_SHARED_SECRET:
+        raise HTTPException(
+            status_code=500,
+            detail="Internal shared secret not configured",
+        )
+
+    if provided_secret != INTERNAL_SHARED_SECRET:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid internal secret",
+        )
 
 def resolve_outbound_authorization(
     request: Request,
@@ -157,6 +353,64 @@ def get_catalog_source(pos_db: Session, client_id: int) -> str:
     source = (getattr(settings, "catalog_source", None) or "pos").strip().lower()
     if source not in {"pos", "stocks"}:
         return "pos"
+    return source
+
+def resolve_inventory_source_for_stocks(
+    pos_db: Session,
+    client_id: int,
+) -> str:
+    """
+    Resolver interoperable para STOCKS.
+
+    Reglas:
+    - Si NO existe configuración:
+        → stocks
+    - Si existe configuración:
+        → respetar catalog_source
+    """
+
+    settings = get_client_settings(pos_db, client_id)
+
+    if not settings:
+        return "stocks"
+
+    source = (
+        getattr(settings, "catalog_source", None)
+        or "stocks"
+    ).strip().lower()
+
+    if source not in {"pos", "stocks"}:
+        return "stocks"
+
+    return source
+
+def resolve_inventory_source_for_stocks(
+    pos_db: Session,
+    client_id: int,
+) -> str:
+    """
+    Resolver oficial interoperable para STOCKS.
+
+    Reglas:
+    - Si NO existe configuración POS:
+        → asumir stocks
+    - Si existe configuración:
+        → respetar catalog_source configurado
+    """
+
+    settings = get_client_settings(pos_db, client_id)
+
+    if not settings:
+        return "stocks"
+
+    source = (
+        getattr(settings, "catalog_source", None)
+        or "stocks"
+    ).strip().lower()
+
+    if source not in {"pos", "stocks"}:
+        return "stocks"
+
     return source
 
 
@@ -227,6 +481,109 @@ def fetch_stocks_categories(
     payload = response.json()
     return payload.get("items", [])
 
+def fetch_stock_item_by_id(
+    *,
+    catalog_integration_url: str,
+    authorization: str | None,
+    app_id: int,
+    client_id: int,
+    item_id: int,
+):
+    print(f"[DEBUG] Fetching stock item by id: {item_id} from {catalog_integration_url}")
+    
+    base_url = (
+        catalog_integration_url.rstrip("/")
+    )
+
+    url = (
+        f"{base_url}/api/items/{item_id}"
+    )
+
+    headers = {
+        "X-App-Id": str(app_id),
+        "X-Client-Id": str(client_id),
+    }
+
+    if authorization:
+        headers["Authorization"] = authorization
+
+    try:
+        response = requests.get(
+            url,
+            headers=headers,
+            timeout=15,
+        )
+
+    except requests.RequestException as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "No fue posible consultar "
+                "el catálogo Stocks."
+            ),
+        ) from exc
+
+    if response.status_code >= 400:
+        try:
+            detail = response.json()
+        except Exception:
+            detail = response.text
+
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "message": (
+                    "Stocks devolvió error "
+                    "al consultar item."
+                ),
+                "stocks_response": detail,
+            },
+        )
+
+    try:
+        payload = response.json()
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Respuesta inválida "
+                "desde Stocks."
+            ),
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Payload inválido "
+                "desde Stocks."
+            ),
+        )
+
+    runtime_item = payload.get("item")
+
+    if not isinstance(runtime_item, dict):
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Runtime item inválido "
+                "desde Stocks."
+            ),
+        )
+
+    if not isinstance(runtime_item, dict):
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Runtime item inválido "
+                "desde Stocks."
+            ),
+        )
+
+    print(f"[DEBUG] Runtime stock item resolved: {runtime_item}")
+
+    return runtime_item
 
 def fetch_stocks_items(
     catalog_integration_url: str,
@@ -490,12 +847,14 @@ def post_stocks_sale_apply(
         body = None
 
     if not response.ok:
-        if isinstance(body, dict):
-            detail = body.get("message") or body.get("detail")
-
-        raise HTTPException(
+        raise_upstream_contract_error(
+            response=response,
+            upstream="stocks",
+            default_detail=(
+                f"No se pudo aplicar venta en Stocks "
+                f"({response.status_code})"
+            ),
             status_code=502,
-            detail=detail or f"No se pudo aplicar venta en Stocks ({response.status_code})",
         )
 
     if isinstance(body, dict):
@@ -556,12 +915,14 @@ def post_stocks_sale_cancel(
         body = None
 
     if not response.ok:
-        if isinstance(body, dict):
-            detail = body.get("message") or body.get("detail")
-
-        raise HTTPException(
+        raise_upstream_contract_error(
+            response=response,
+            upstream="stocks",
+            default_detail=(
+                f"No se pudo cancelar venta en Stocks "
+                f"({response.status_code})"
+            ),
             status_code=502,
-            detail=detail or f"No se pudo cancelar venta en Stocks ({response.status_code})",
         )
 
     if isinstance(body, dict):
